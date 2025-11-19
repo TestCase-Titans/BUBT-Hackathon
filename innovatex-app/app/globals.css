@@ -3,12 +3,12 @@
 
 
 :root {
-  --background: #ffffff;
+  --background: #F0FFF4;
   --foreground: #171717;
 }
 
 body {
- 
+  @apply bg-slate-50 dark:bg-[#E8F5E9];
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

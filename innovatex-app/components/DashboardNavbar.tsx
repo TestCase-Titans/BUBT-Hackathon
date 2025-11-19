@@ -60,9 +60,9 @@ export const DashboardNavbar = () => {
               const isActive = pathname.startsWith(item.path);
               return (
                 <NavigationMenu.Item key={item.id}>
-                  <Link href={item.path} legacyBehavior passHref>
-                    <NavigationMenu.Link
-                      active={isActive}
+                  <NavigationMenu.Link asChild active={isActive}>
+                    <Link 
+                      href={item.path}
                       className={`
                         group flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 outline-none select-none
                         ${isActive 
@@ -76,8 +76,8 @@ export const DashboardNavbar = () => {
                         className={`transition-colors duration-300 ${isActive ? 'text-[#D4FF47] dark:text-[#0A3323]' : 'text-slate-400 group-hover:text-[#0A3323] dark:group-hover:text-[#D4FF47]'}`} 
                       />
                       <span>{item.label}</span>
-                    </NavigationMenu.Link>
-                  </Link>
+                    </Link>
+                  </NavigationMenu.Link>
                 </NavigationMenu.Item>
               );
             })}
