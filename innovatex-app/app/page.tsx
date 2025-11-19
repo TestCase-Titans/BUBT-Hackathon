@@ -482,7 +482,6 @@ const Manifesto = () => {
   );
 };
 
-/* --- FIXED FOOTER (CENTERED & WORKABLE LINKS) --- */
 const Footer = () => {
   const lenis = useLenis();
 
@@ -503,6 +502,7 @@ const Footer = () => {
     }
   };
 
+  // Footer Navigation Structure
   const footerLinks = {
     platform: [
       { label: "Features", href: "#features", type: "scroll" },
@@ -564,31 +564,17 @@ const Footer = () => {
       />
 
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row justify-between gap-16 mb-20">
-          <div className="max-w-2xl">
-            <h3 className="text-4xl md:text-6xl font-serif leading-tight mb-8">
+        <div className="flex flex-col lg:auto justify-center gap-20 mb-20">
+          
+          <div className="max-w-2xl mx-auto">
+            <h3 className="text-4xl md:text-6xl font-serif leading-tight mb-8 lg:text-center">
               Ready to close the loop <br />
-              <span className="text-[#D4FF47] italic">on food waste?</span>
+              <span className="text-[#D4FF47] italic ">on food waste?</span>
             </h3>
-            <Link href="/login">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.95 }}
-                className="group relative flex items-center gap-4 bg-[#F3F6F4] text-[#0A3323] pl-8 pr-3 py-3 rounded-full text-lg font-bold overflow-hidden transition-all"
-              >
-                <span className="relative z-10">Start Now</span>
-                <div className="w-12 h-12 bg-[#0A3323] rounded-full flex items-center justify-center group-hover:bg-[#D4FF47] transition-colors duration-300">
-                  <ArrowUpRight
-                    className="text-[#F3F6F4] group-hover:text-[#0A3323] transition-colors duration-300"
-                    size={24}
-                  />
-                </div>
-              </motion.button>
-            </Link>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-12 lg:gap-20">
-            <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-10 lg:gap-16 w-full lg:w-auto lg:text-center ">
+            <div className="flex flex-col gap-6" >
               <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">
                 Platform
               </h4>
@@ -617,9 +603,10 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* Bottom Copyright */}
         <div className="w-full flex justify-between items-center pb-10 text-[10px] uppercase tracking-widest opacity-40 border-t border-[#F3F6F4]/10 pt-8">
           <span>Dhaka, Bangladesh</span>
-          <span>© 2024 Eco-Loop Inc.</span>
+          <span>© 2025 TCT</span>
         </div>
       </div>
     </footer>
