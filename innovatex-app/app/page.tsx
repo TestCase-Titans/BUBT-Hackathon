@@ -7,7 +7,7 @@ import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { ReactLenis } from "lenis/react";
+import { ReactLenis, useLenis } from "lenis/react"; // Import useLenis
 import {
   Leaf,
   ArrowRight,
@@ -26,41 +26,54 @@ gsap.registerPlugin(useGSAP);
    COMPONENTS
    -------------------------------------------------------------------------- */
 
-const Navbar = () => (
-  <motion.nav
-    initial={{ y: -100 }}
-    animate={{ y: 0 }}
-    transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
-    className="fixed top-0 left-0 right-0 z-50 px-6 py-6 flex justify-between items-center mix-blend-difference text-[#F3F6F4]"
-  >
-    <div className="flex items-center gap-2">
-      <div className="w-10 h-10 bg-[#D4FF47] rounded-full flex items-center justify-center text-[#0A3323]">
-        <Leaf size={20} strokeWidth={2.5} />
-      </div>
-      <span className="text-xl font-serif font-bold tracking-tight">
-        Eco-Loop
-      </span>
-    </div>
-    <div className="hidden md:flex gap-8 font-medium text-sm uppercase tracking-widest">
-      {["Manifesto", "Features", "Impact"].map((item) => (
-        <a
-          key={item}
-          href={`#${item.toLowerCase()}`}
-          className="hover:text-[#D4FF47] transition-colors"
-        >
-          {item}
-        </a>
-      ))}
-    </div>
-    <Link href="/login">
-      <button className="group relative px-6 py-3 rounded-full border border-[#F3F6F4]/30 overflow-hidden bg-transparent hover:bg-[#D4FF47] transition-colors duration-300">
-        <span className="relative z-10 text-xs font-bold uppercase tracking-wider group-hover:text-[#0A3323] transition-colors">
-          Launch App
+const Navbar = () => {
+  const lenis = useLenis(); // Get lenis instance
+
+  const handleScroll = (id: string) => {
+    if (lenis) {
+      lenis.scrollTo(`#${id}`);
+    } else {
+       // Fallback if lenis isn't ready
+       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
+      className="fixed top-0 left-0 right-0 z-50 px-6 py-6 flex justify-between items-center mix-blend-difference text-[#F3F6F4]"
+    >
+      <div className="flex items-center gap-2">
+        <div className="w-10 h-10 bg-[#D4FF47] rounded-full flex items-center justify-center text-[#0A3323]">
+          <Leaf size={20} strokeWidth={2.5} />
+        </div>
+        <span className="text-xl font-serif font-bold tracking-tight">
+          Eco-Loop
         </span>
-      </button>
-    </Link>
-  </motion.nav>
-);
+      </div>
+      <div className="hidden md:flex gap-8 font-medium text-sm uppercase tracking-widest cursor-pointer">
+        {["Features", "Manifesto", "Impact"].map((item) => (
+          <span
+            key={item}
+            onClick={() => handleScroll(item.toLowerCase())}
+            className="hover:text-[#D4FF47] transition-colors"
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+      <Link href="/login">
+        <button className="group relative px-6 py-3 rounded-full border border-[#F3F6F4]/30 overflow-hidden bg-transparent hover:bg-[#D4FF47] transition-colors duration-300">
+          <span className="relative z-10 text-xs font-bold uppercase tracking-wider group-hover:text-[#0A3323] transition-colors">
+            Get Started
+          </span>
+        </button>
+      </Link>
+    </motion.nav>
+  );
+};
 
 const Hero = () => {
   const container = useRef(null);
@@ -96,18 +109,55 @@ const Hero = () => {
       className="relative h-screen w-full bg-[#0A3323] flex flex-col justify-center px-6 lg:px-20 overflow-hidden"
     >
       {/* Animated Background Grid */}
-      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[#D4FF47] rounded-full blur-[150px] opacity-5 pointer-events-none" />
+      <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
+        <motion.div
+          className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"
+          animate={{
+            rotate: 360,
+          }}
+          transition={{
+            duration: 60,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+      </div>
+
+      {/* Pulsing Glow Orb */}
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[#D4FF47] rounded-full blur-[150px] opacity-5 pointer-events-none"
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [0.05, 0.08, 0.05],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
 
       <div className="relative z-10 mt-20">
         <div className="overflow-hidden">
-          <h1 className="hero-text-line text-[12vw] leading-[0.85] font-serif text-[#F3F6F4] mix-blend-difference">
-            Sustainability
+          <h1 className="hero-text-line text-[12vw] leading-[0.85] font-serif text-[#F3F6F4] mix-blend-difference cursor-default">
+            <motion.span
+              className="inline-block"
+              whileHover={{ scale: 1.05, color: "#D4FF47" }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              Sustainability
+            </motion.span>
           </h1>
         </div>
         <div className="overflow-hidden">
-          <h1 className="hero-text-line text-[12vw] leading-[0.85] font-serif text-[#D4FF47]">
-            Reimagined.
+          <h1 className="hero-text-line text-[12vw] leading-[0.85] font-serif text-[#D4FF47] cursor-default">
+            <motion.span
+              className="inline-block"
+              whileHover={{ scale: 1.05, color: "#F3F6F4" }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              Reimagined.
+            </motion.span>
           </h1>
         </div>
 
@@ -136,24 +186,47 @@ const Marquee = () => {
   const firstText = useRef(null);
   const secondText = useRef(null);
   const slider = useRef(null);
-  let xPercent = 0;
-  let direction = -1;
+  
+  // Use refs for animation state to persist across renders without re-triggering them
+  const xPercent = useRef(0);
+  const direction = useRef(-1);
+  const speed = useRef(1); // Current speed multiplier
+  const targetSpeed = useRef(1); // Target speed (1 = normal, 0.1 = slow)
+  const requestRef = useRef<number | null>(null); // Initialized with null
 
   useGSAP(() => {
-    requestAnimationFrame(animate);
+    const animate = () => {
+      if (xPercent.current <= -100) xPercent.current = 0;
+      if (xPercent.current > 0) xPercent.current = -100;
+
+      // Smoothly interpolate current speed towards target speed
+      speed.current += (targetSpeed.current - speed.current) * 0.05;
+
+      gsap.set(firstText.current, { xPercent: xPercent.current });
+      gsap.set(secondText.current, { xPercent: xPercent.current });
+      
+      // Apply the speed multiplier to the movement
+      xPercent.current += 0.1 * direction.current * speed.current;
+      
+      requestRef.current = requestAnimationFrame(animate);
+    };
+
+    requestRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (requestRef.current !== null) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
   });
 
-  const animate = () => {
-    if (xPercent <= -100) xPercent = 0;
-    if (xPercent > 0) xPercent = -100;
-    gsap.set(firstText.current, { xPercent: xPercent });
-    gsap.set(secondText.current, { xPercent: xPercent });
-    xPercent += 0.1 * direction;
-    requestAnimationFrame(animate);
-  };
-
   return (
-    <div className="relative flex overflow-hidden bg-[#D4FF47] py-8">
+    <div 
+      className="relative flex overflow-hidden bg-[#D4FF47] py-8 cursor-default"
+      // Set target speed on hover events
+      onMouseEnter={() => { targetSpeed.current = 0.1; }}
+      onMouseLeave={() => { targetSpeed.current = 1; }}
+    >
       <div className="absolute top-0 w-full h-px bg-[#0A3323]/10" />
       <div ref={slider} className="flex whitespace-nowrap">
         <p
@@ -205,7 +278,6 @@ const FeaturesHorizontal = () => {
       title: "Smart Scan",
       desc: "Snap a photo of your grocery receipt. Our AI catalogs everything in seconds, turning paper into digital inventory.",
       icon: ScanLine,
-      // Replace with your actual image path (e.g., "/images/scan-bg.jpg")
       image: "/images/1.jpg",
     },
     {
@@ -227,6 +299,7 @@ const FeaturesHorizontal = () => {
   return (
     <section
       ref={triggerRef}
+      id="features" // Added ID for navigation
       className="w-full h-screen overflow-hidden bg-[#0A3323]"
     >
       <div ref={sectionRef} className="h-full flex w-[300vw]">
@@ -271,8 +344,12 @@ const FeaturesHorizontal = () => {
                   <div className="absolute inset-0 bg-[#D4FF47] rounded-full blur-[100px] opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
 
                   <motion.div
-                    whileHover={{ scale: 1.1, rotate: 10 }}
-                    transition={{ type: "spring", stiffness: 300 }}
+                    whileHover={{ 
+                      scale: 1.2, 
+                      rotate: 90,
+                      filter: "drop-shadow(0 0 15px #D4FF47)"
+                    }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
                     className="relative z-10"
                   >
                     <f.icon
@@ -294,31 +371,84 @@ const FeaturesHorizontal = () => {
   );
 };
 
+// Helper component to split text into characters for the typewriter effect
+const Split = ({ children, className }: { children: string, className?: string }) => {
+  return (
+    <span className={className}>
+      {children.split("").map((char, i) => (
+        <span
+          key={i}
+          className="typewriter-char opacity-0 inline-block"
+          style={{ whiteSpace: "pre" }}
+        >
+          {char}
+        </span>
+      ))}
+    </span>
+  );
+};
+
 const Manifesto = () => {
+  const container = useRef(null);
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: container.current,
+          start: "top 75%",
+          toggleActions: "play none none reverse",
+        },
+      });
+
+      // Animate the typewriter characters
+      tl.to(".typewriter-char", {
+        opacity: 1,
+        duration: 0.2, // Increased duration per character (slower fade in)
+        stagger: 0.04, // Increased stagger delay (slower typing speed)
+        ease: "none",
+      })
+      // Animate stats sliding up after text
+      .from(".manifesto-stat", {
+        y: 40,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: "power3.out",
+      }, "-=0.5");
+    },
+    { scope: container }
+  );
+
   return (
     <section
+      ref={container}
       className="py-32 px-6 lg:px-20 bg-[#0A3323] text-[#F3F6F4]"
       id="manifesto"
     >
       <div className="max-w-5xl mx-auto">
-        <p className="text-xl md:text-3xl font-light leading-relaxed opacity-80 mb-12">
-          The modern kitchen is broken. We buy too much, eat too little, and
-          throw away the rest.
-          <span className="text-[#D4FF47]"> It's a design flaw. </span>
-        </p>
-        <h2 className="text-5xl md:text-8xl font-serif leading-tight">
-          We built Eco-Loop to <br />
-          <span className="italic text-[#D4FF47]">close the circle</span> <br />
-          on consumption.
+        <div className="text-xl md:text-3xl font-light leading-relaxed opacity-80 mb-12">
+          <p>
+            <Split>The modern kitchen is broken. We buy too much, eat too little, and throw away the rest. </Split>
+            <Split className="text-[#D4FF47] font-medium">It&apos;s a design flaw.</Split>
+          </p>
+        </div>
+        
+        <h2 className="text-5xl md:text-8xl font-serif leading-tight mb-16">
+          <Split>We built Eco-Loop to</Split>
+          <br />
+          <Split className="italic text-[#D4FF47]">close the circle</Split>
+          <br />
+          <Split>on consumption.</Split>
         </h2>
 
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8" id="impact">
           {[
             { label: "Households", value: "500+" },
             { label: "Waste Saved", value: "1.2k kg" },
             { label: "Money Saved", value: "$45k" },
           ].map((stat, i) => (
-            <div key={i} className="border-t border-[#F3F6F4]/20 pt-6">
+            <div key={i} className="manifesto-stat border-t border-[#F3F6F4]/20 pt-6">
               <h3 className="text-5xl font-bold text-[#D4FF47] mb-2">
                 {stat.value}
               </h3>
