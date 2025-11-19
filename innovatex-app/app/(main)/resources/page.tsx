@@ -17,7 +17,7 @@ export default function ResourcesPage() {
     <PageWrapper>
       <div className="pb-24 lg:pb-8 pt-8 px-6 lg:px-12 overflow-y-auto h-full max-w-7xl mx-auto">
         <h2 className="text-3xl lg:text-4xl font-serif text-[#0A3323] mb-2">
-          Inventory
+          Library
         </h2>
         <p className="text-gray-500 mb-8">Guides for a sustainable kitchen.</p>
 

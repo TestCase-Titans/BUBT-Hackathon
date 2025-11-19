@@ -14,7 +14,7 @@ export const DesktopSidebar = () => {
     { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', path: '/dashboard' },
     { id: 'inventory', icon: Leaf, label: 'My Pantry', path: '/inventory' },
     { id: 'scan', icon: ScanLine, label: 'Smart Scan', path: '/scan' },
-    { id: 'resources', icon: BookOpen, label: 'Inventory', path: '/resources' },
+    { id: 'resources', icon: BookOpen, label: 'Library', path: '/resources' },
     { id: 'profile', icon: User, label: 'Profile', path: '/profile' },
   ];
 
