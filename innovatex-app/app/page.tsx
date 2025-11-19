@@ -7,7 +7,8 @@ import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { ReactLenis, useLenis } from "lenis/react"; // Import useLenis
+import { ReactLenis, useLenis } from "lenis/react";
+import { useApp } from "@/context/AppContext"; // Import User Context
 import {
   Leaf,
   ArrowRight,
@@ -27,16 +28,7 @@ gsap.registerPlugin(useGSAP);
    -------------------------------------------------------------------------- */
 
 const Navbar = () => {
-  const lenis = useLenis(); // Get lenis instance
-
-  const handleScroll = (id: string) => {
-    if (lenis) {
-      lenis.scrollTo(`#${id}`);
-    } else {
-       // Fallback if lenis isn't ready
-       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  const { user } = useApp(); // Get user state to handle button logic
 
   return (
     <motion.nav
@@ -53,21 +45,24 @@ const Navbar = () => {
           Eco-Loop
         </span>
       </div>
-      <div className="hidden md:flex gap-8 font-medium text-sm uppercase tracking-widest cursor-pointer">
-        {["Features", "Manifesto", "Impact"].map((item) => (
-          <span
+
+      <div className="hidden md:flex gap-8 font-medium text-sm uppercase tracking-widest">
+        {["Manifesto", "Features", "Impact"].map((item) => (
+          <a
             key={item}
-            onClick={() => handleScroll(item.toLowerCase())}
+            href={`#${item.toLowerCase()}`}
             className="hover:text-[#D4FF47] transition-colors"
           >
             {item}
-          </span>
+          </a>
         ))}
       </div>
-      <Link href="/login">
+
+      {/* Dynamic Link: Goes to Dashboard if logged in, otherwise Login */}
+      <Link href={user ? "/dashboard" : "/login"}>
         <button className="group relative px-6 py-3 rounded-full border border-[#F3F6F4]/30 overflow-hidden bg-transparent hover:bg-[#D4FF47] transition-colors duration-300">
           <span className="relative z-10 text-xs font-bold uppercase tracking-wider group-hover:text-[#0A3323] transition-colors">
-            Get Started
+            {user ? "Open Dashboard" : "Launch App"}
           </span>
         </button>
       </Link>
@@ -139,7 +134,7 @@ const Hero = () => {
 
       <div className="relative z-10 mt-20">
         <div className="overflow-hidden">
-          <h1 className="hero-text-line text-[12vw] leading-[0.85] font-serif text-[#F3F6F4] mix-blend-difference cursor-default">
+          <h1 className="ml-8 pl-2 hero-text-line text-[10vw] leading-[0.85] font-serif text-[#F3F6F4] mix-blend-difference cursor-default">
             <motion.span
               className="inline-block"
               whileHover={{ scale: 1.05, color: "#D4FF47" }}
@@ -150,7 +145,7 @@ const Hero = () => {
           </h1>
         </div>
         <div className="overflow-hidden">
-          <h1 className="hero-text-line text-[12vw] leading-[0.85] font-serif text-[#D4FF47] cursor-default">
+          <h1 className="ml-8 pl-2 hero-text-line text-[10vw] leading-[0.85] font-serif text-[#D4FF47] cursor-default">
             <motion.span
               className="inline-block"
               whileHover={{ scale: 1.05, color: "#F3F6F4" }}
@@ -162,7 +157,7 @@ const Hero = () => {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-end mt-12 hero-sub">
-          <p className="text-[#F3F6F4]/80 text-lg md:text-xl max-w-md font-light leading-relaxed">
+          <p className="text-[#F3F6F4]/80 text-lg md:text-xl max-w-md font-light leading-relaxed ml-12 pl-2">
             The operating system for your kitchen. Track inventory, reduce
             waste, and automate your grocery cycle with AI-driven intelligence.
           </p>
@@ -186,7 +181,7 @@ const Marquee = () => {
   const firstText = useRef(null);
   const secondText = useRef(null);
   const slider = useRef(null);
-  
+
   // Use refs for animation state to persist across renders without re-triggering them
   const xPercent = useRef(0);
   const direction = useRef(-1);
@@ -204,10 +199,10 @@ const Marquee = () => {
 
       gsap.set(firstText.current, { xPercent: xPercent.current });
       gsap.set(secondText.current, { xPercent: xPercent.current });
-      
+
       // Apply the speed multiplier to the movement
       xPercent.current += 0.1 * direction.current * speed.current;
-      
+
       requestRef.current = requestAnimationFrame(animate);
     };
 
@@ -221,11 +216,15 @@ const Marquee = () => {
   });
 
   return (
-    <div 
+    <div
       className="relative flex overflow-hidden bg-[#D4FF47] py-8 cursor-default"
       // Set target speed on hover events
-      onMouseEnter={() => { targetSpeed.current = 0.1; }}
-      onMouseLeave={() => { targetSpeed.current = 1; }}
+      onMouseEnter={() => {
+        targetSpeed.current = 0.1;
+      }}
+      onMouseLeave={() => {
+        targetSpeed.current = 1;
+      }}
     >
       <div className="absolute top-0 w-full h-px bg-[#0A3323]/10" />
       <div ref={slider} className="flex whitespace-nowrap">
@@ -344,10 +343,10 @@ const FeaturesHorizontal = () => {
                   <div className="absolute inset-0 bg-[#D4FF47] rounded-full blur-[100px] opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
 
                   <motion.div
-                    whileHover={{ 
-                      scale: 1.2, 
+                    whileHover={{
+                      scale: 1.2,
                       rotate: 90,
-                      filter: "drop-shadow(0 0 15px #D4FF47)"
+                      filter: "drop-shadow(0 0 15px #D4FF47)",
                     }}
                     transition={{ type: "spring", stiffness: 200, damping: 15 }}
                     className="relative z-10"
@@ -372,7 +371,13 @@ const FeaturesHorizontal = () => {
 };
 
 // Helper component to split text into characters for the typewriter effect
-const Split = ({ children, className }: { children: string, className?: string }) => {
+const Split = ({
+  children,
+  className,
+}: {
+  children: string;
+  className?: string;
+}) => {
   return (
     <span className={className}>
       {children.split("").map((char, i) => (
@@ -404,18 +409,22 @@ const Manifesto = () => {
       // Animate the typewriter characters
       tl.to(".typewriter-char", {
         opacity: 1,
-        duration: 0.2, // Increased duration per character (slower fade in)
-        stagger: 0.04, // Increased stagger delay (slower typing speed)
+        duration: 0.2,
+        stagger: 0.03,
         ease: "none",
       })
-      // Animate stats sliding up after text
-      .from(".manifesto-stat", {
-        y: 40,
-        opacity: 0,
-        duration: 0.8,
-        stagger: 0.2,
-        ease: "power3.out",
-      }, "-=0.5");
+        // Animate stats sliding up after text
+        .from(
+          ".manifesto-stat",
+          {
+            y: 40,
+            opacity: 0,
+            duration: 0.8,
+            stagger: 0.2,
+            ease: "power3.out",
+          },
+          "-=0.5"
+        );
     },
     { scope: container }
   );
@@ -428,27 +437,41 @@ const Manifesto = () => {
     >
       <div className="max-w-5xl mx-auto">
         <div className="text-xl md:text-3xl font-light leading-relaxed opacity-80 mb-12">
-          <p>
-            <Split>The modern kitchen is broken. We buy too much, eat too little, and throw away the rest. </Split>
-            <Split className="text-[#D4FF47] font-medium">It&apos;s a design flaw.</Split>
-          </p>
+          {/* FIXED: Apply Split only to text strings */}
+          <div>
+            <Split>
+              The modern kitchen is broken. We buy too much, eat too little, and
+              throw away the rest.
+            </Split>{" "}
+            <Split className="text-[#D4FF47] font-medium">
+              It&apos;s a design flaw.
+            </Split>
+          </div>
         </div>
-        
-        <h2 className="text-5xl md:text-8xl font-serif leading-tight mb-16">
-          <Split>We built Eco-Loop to</Split>
-          <br />
-          <Split className="italic text-[#D4FF47]">close the circle</Split>
+
+        {/* FIXED: Apply Split only to text strings */}
+        <h2 className="text-5xl md:text-8xl font-serif leading-tight">
+          <Split>We built Eco-Loop to</Split> <br />
+          <span className="italic text-[#D4FF47]">
+            <Split>close the circle</Split>
+          </span>{" "}
           <br />
           <Split>on consumption.</Split>
         </h2>
 
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8" id="impact">
+        <div
+          className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8"
+          id="impact"
+        >
           {[
             { label: "Households", value: "500+" },
             { label: "Waste Saved", value: "1.2k kg" },
             { label: "Money Saved", value: "$45k" },
           ].map((stat, i) => (
-            <div key={i} className="manifesto-stat border-t border-[#F3F6F4]/20 pt-6">
+            <div
+              key={i}
+              className="manifesto-stat border-t border-[#F3F6F4]/20 pt-6"
+            >
               <h3 className="text-5xl font-bold text-[#D4FF47] mb-2">
                 {stat.value}
               </h3>

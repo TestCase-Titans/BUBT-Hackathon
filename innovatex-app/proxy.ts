@@ -1,3 +1,4 @@
+// proxy.ts
 import { NextResponse } from "next/server";
 import NextAuth from "next-auth";
 import { authConfig } from "./lib/auth.config";
@@ -16,29 +17,31 @@ export default auth((req) => {
     "/resources",
   ];
 
+  // 1. Define routes that logged-in users should NOT see
+  const authRoutes = ["/login", "/register"];
+
   const isProtectedRoute = protectedRoutes.some((route) =>
     nextUrl.pathname.startsWith(route)
   );
 
+  const isAuthRoute = authRoutes.some((route) =>
+    nextUrl.pathname.startsWith(route)
+  );
+
+  // 2. Redirect GUEST trying to access PROTECTED route -> Login
   if (isProtectedRoute && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", nextUrl)); // Changed to /login since / is now landing
+    return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
-  const response = NextResponse.next();
-
-  if (isProtectedRoute) {
-    response.headers.set(
-      "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
-    );
-    response.headers.set("Pragma", "no-cache");
-    response.headers.set("Expires", "0");
-    response.headers.set("Surrogate-Control", "no-store");
+  // 3. Redirect MEMBER trying to access AUTH route -> Dashboard
+  if (isAuthRoute && isLoggedIn) {
+    return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
-  return response;
+  return NextResponse.next();
 });
 
 export const config = {
+  // Matcher ignores api, static files, images, etc.
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
