@@ -12,16 +12,42 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Form State
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     householdSize: 1,
+    location: "",
+    dietaryPreferences: "None",
+    budgetRange: "Medium"
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (error) setError(""); 
+  };
+
+  const validateForm = () => {
+    if (!formData.email.trim()) return "Email is required.";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) return "Invalid email format.";
+
+    if (!formData.password) return "Password is required.";
+    
+    const password = formData.password;
+    if (password.length < 8) return "Password must be at least 8 characters long.";
+    if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter.";
+    if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter.";
+    if (!/[0-9]/.test(password)) return "Password must contain at least one number.";
+    if (!/[\W_]/.test(password)) return "Password must contain at least one special character (!@#$...).";
+
+    if (isRegister) {
+        if (!formData.name.trim()) return "Full name is required.";
+        if (formData.householdSize < 1) return "Household size must be at least 1.";
+        if (!formData.location.trim()) return "Location is required.";
+    }
+
+    return "";
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -29,9 +55,15 @@ export default function AuthPage() {
     setLoading(true);
     setError("");
 
+    const validationError = validateForm();
+    if (validationError) {
+        setError(validationError);
+        setLoading(false);
+        return;
+    }
+
     try {
       if (isRegister) {
-        // --- REGISTRATION FLOW ---
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -40,6 +72,9 @@ export default function AuthPage() {
             email: formData.email,
             password: formData.password,
             householdSize: formData.householdSize,
+            location: formData.location,
+            budgetRange: formData.budgetRange,
+            dietaryPreferences: [formData.dietaryPreferences]
           })
         });
 
@@ -48,7 +83,6 @@ export default function AuthPage() {
           throw new Error(data.message || "Registration failed");
         }
 
-        // If registration successful, sign them in automatically
         const loginRes = await signIn("credentials", {
           redirect: false,
           email: formData.email,
@@ -56,13 +90,12 @@ export default function AuthPage() {
         });
 
         if (loginRes?.error) {
-            router.push('/'); // Stay here if auto-login fails
+            router.push('/'); 
         } else {
             router.push('/dashboard');
         }
 
       } else {
-        // --- LOGIN FLOW ---
         const result = await signIn("credentials", {
           redirect: false,
           email: formData.email,
@@ -84,7 +117,6 @@ export default function AuthPage() {
 
   return (
     <div className="h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-[#F3F6F4]">
-      {/* Left Side - Visual */}
       <div className="w-full lg:w-1/2 h-[40vh] lg:h-full relative overflow-hidden flex items-center justify-center bg-[#0A3323]">
         <div className="absolute inset-0 opacity-20">
             <motion.div 
@@ -109,7 +141,7 @@ export default function AuthPage() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 lg:p-16 relative bg-[#F3F6F4]">
+      <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 lg:p-16 relative bg-[#F3F6F4] overflow-y-auto">
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -139,20 +171,64 @@ export default function AuthPage() {
                         value={formData.name}
                         onChange={handleChange}
                         type="text" 
-                        required={isRegister}
                         className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
                         placeholder="Jane Doe" 
                     />
                 </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Members</label>
+                        <input 
+                            name="householdSize"
+                            value={formData.householdSize}
+                            onChange={handleChange}
+                            type="number" 
+                            min="1"
+                            className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
+                        />
+                    </div>
+                    <div className="space-y-1">
+                         <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Budget</label>
+                         <select
+                            name="budgetRange"
+                            value={formData.budgetRange}
+                            onChange={handleChange}
+                            className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all"
+                         >
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                         </select>
+                    </div>
+                </div>
+
                 <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Household Size</label>
-                    <input 
-                        name="householdSize"
-                        value={formData.householdSize}
+                    <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Dietary Preference</label>
+                    <select
+                        name="dietaryPreferences"
+                        value={formData.dietaryPreferences}
                         onChange={handleChange}
-                        type="number" 
-                        min="1"
+                        className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all"
+                    >
+                        <option value="None">None</option>
+                        <option value="Vegetarian">Vegetarian</option>
+                        <option value="Vegan">Vegan</option>
+                        <option value="Halal">Halal</option>
+                        <option value="Gluten-Free">Gluten-Free</option>
+                        <option value="Keto">Keto</option>
+                    </select>
+                </div>
+
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Location</label>
+                    <input 
+                        name="location"
+                        value={formData.location}
+                        onChange={handleChange}
+                        type="text" 
                         className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
+                        placeholder="e.g. Dhaka, Bangladesh" 
                     />
                 </div>
               </>
@@ -165,20 +241,20 @@ export default function AuthPage() {
                 value={formData.email}
                 onChange={handleChange}
                 type="email" 
-                required
                 className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
                 placeholder="jane@example.com" 
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Password</label>
+              <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">
+                  Password {isRegister && <span className="text-[10px] text-gray-400 normal-case font-normal">(Min 8 chars, 1 upper, 1 lower, 1 special)</span>}
+              </label>
               <input 
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 type="password" 
-                required
                 className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
                 placeholder="••••••••" 
               />
@@ -192,7 +268,7 @@ export default function AuthPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center pb-8 lg:pb-0">
             <button 
               onClick={() => {
                   setIsRegister(!isRegister);

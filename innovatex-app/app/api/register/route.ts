@@ -7,29 +7,47 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const { name, email, password, householdSize, dietaryPreferences } = body;
+    const { 
+      name, 
+      email, 
+      password, 
+      householdSize, 
+      dietaryPreferences, 
+      location, 
+      budgetRange 
+    } = body;
 
-    // 1. Validate input
     if (!name || !email || !password) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
 
-    // 2. Check if user already exists
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ message: "Invalid email address" }, { status: 400 });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[\W_]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return NextResponse.json({ 
+        message: "Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character." 
+      }, { status: 400 });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json({ message: "User already exists" }, { status: 400 });
     }
 
-    // 3. Hash Password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create User
     await User.create({
       name,
       email,
       password: hashedPassword,
       householdSize: householdSize || 1,
       dietaryPreferences: dietaryPreferences || [],
+      location: location || "",
+      budgetRange: budgetRange || "Medium",
     });
 
     return NextResponse.json({ message: "User registered successfully" }, { status: 201 });
