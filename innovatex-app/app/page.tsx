@@ -1,23 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { ReactLenis, useLenis } from "lenis/react";
-import { useApp } from "@/context/AppContext"; 
-import {
-  Leaf,
-  ArrowRight,
-  Globe,
-  ScanLine,
-  Box,
-  Sparkles,
-  ArrowUpRight,
-} from "lucide-react";
+import { useApp } from "@/context/AppContext";
+import { Leaf, ArrowUpRight, ScanLine, Box, Sparkles } from "lucide-react";
+import { image } from "framer-motion/client";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -29,19 +21,20 @@ gsap.registerPlugin(useGSAP);
 
 const Navbar = () => {
   const { user } = useApp();
-  const lenis = useLenis(); // Access the smooth scroll instance
+  const lenis = useLenis();
 
-  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
-    e.preventDefault(); // Stop default jump behavior
+  const handleScroll = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    targetId: string
+  ) => {
+    e.preventDefault();
     if (lenis) {
-      // Use Lenis to scroll smoothly to the target with an offset
-      lenis.scrollTo(targetId, { 
+      lenis.scrollTo(targetId, {
         duration: 1.5,
-        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Exponential ease out
-        offset: -100 // Adjust this value as needed. Negative pulls it up.
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        offset: -100,
       });
     } else {
-      // Fallback if Lenis isn't ready
       const element = document.querySelector(targetId);
       element?.scrollIntoView({ behavior: "smooth" });
     }
@@ -119,7 +112,6 @@ const Hero = () => {
       ref={container}
       className="relative h-screen w-full bg-[#0A3323] flex flex-col justify-center px-6 lg:px-20 overflow-hidden"
     >
-      {/* Animated Background Grid */}
       <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
         <motion.div
           className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"
@@ -134,7 +126,6 @@ const Hero = () => {
         />
       </div>
 
-      {/* Pulsing Glow Orb */}
       <motion.div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[#D4FF47] rounded-full blur-[150px] opacity-5 pointer-events-none"
         animate={{
@@ -200,8 +191,8 @@ const Marquee = () => {
 
   const xPercent = useRef(0);
   const direction = useRef(-1);
-  const speed = useRef(1); 
-  const targetSpeed = useRef(1); 
+  const speed = useRef(1);
+  const targetSpeed = useRef(1);
   const requestRef = useRef<number | null>(null);
 
   useGSAP(() => {
@@ -257,6 +248,7 @@ const Marquee = () => {
   );
 };
 
+/* --- FEATURES WITH IMAGES (RESTORED) --- */
 const FeaturesHorizontal = () => {
   const sectionRef = useRef(null);
   const triggerRef = useRef(null);
@@ -289,21 +281,21 @@ const FeaturesHorizontal = () => {
       title: "Smart Scan",
       desc: "Snap a photo of your grocery receipt. Our AI catalogs everything in seconds, turning paper into digital inventory.",
       icon: ScanLine,
-      image: "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=2574&auto=format&fit=crop", 
+      image: "/images/1.jpg",
     },
     {
       id: "02",
       title: "Live Inventory",
       desc: "Know exactly what you have. Get automated notifications before food expires so you can cook it, not toss it.",
       icon: Box,
-      image: "https://images.unsplash.com/photo-1584473457406-6240486418e9?q=80&w=2574&auto=format&fit=crop",
+      image: "/images/2.jpg",
     },
     {
       id: "03",
       title: "Impact Score",
       desc: "Gamify your sustainability. Track your carbon footprint reduction in real-time and compete with your neighborhood.",
       icon: Sparkles,
-      image: "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=2682&auto=format&fit=crop",
+      image: "/images/3.jpg",
     },
   ];
 
@@ -422,18 +414,17 @@ const Manifesto = () => {
         duration: 0.2,
         stagger: 0.03,
         ease: "none",
-      })
-        .from(
-          ".manifesto-stat",
-          {
-            y: 40,
-            opacity: 0,
-            duration: 0.8,
-            stagger: 0.2,
-            ease: "power3.out",
-          },
-          "-=0.5"
-        );
+      }).from(
+        ".manifesto-stat",
+        {
+          y: 40,
+          opacity: 0,
+          duration: 0.8,
+          stagger: 0.2,
+          ease: "power3.out",
+        },
+        "-=0.5"
+      );
     },
     { scope: container }
   );
@@ -442,7 +433,7 @@ const Manifesto = () => {
     <section
       ref={container}
       className="py-32 px-6 lg:px-20 bg-[#0A3323] text-[#F3F6F4]"
-      id="manifesto" // Manifesto section ID
+      id="manifesto"
     >
       <div className="max-w-5xl mx-auto">
         <div className="text-xl md:text-3xl font-light leading-relaxed opacity-80 mb-12">
@@ -468,7 +459,7 @@ const Manifesto = () => {
 
         <div
           className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8"
-          id="impact" // Impact section ID
+          id="impact"
         >
           {[
             { label: "Households", value: "500+" },
@@ -491,85 +482,149 @@ const Manifesto = () => {
   );
 };
 
+/* --- FIXED FOOTER (CENTERED & WORKABLE LINKS) --- */
 const Footer = () => {
+  const lenis = useLenis();
+
+  const handleScroll = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    targetId: string
+  ) => {
+    e.preventDefault();
+    if (lenis) {
+      lenis.scrollTo(targetId, {
+        duration: 1.5,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        offset: -100,
+      });
+    } else {
+      const element = document.querySelector(targetId);
+      element?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const footerLinks = {
+    platform: [
+      { label: "Features", href: "#features", type: "scroll" },
+      { label: "Pricing", href: "#", type: "none" },
+      { label: "Login", href: "/login", type: "link" },
+      { label: "Sign Up", href: "/login", type: "link" },
+    ],
+    company: [
+      { label: "Manifesto", href: "#manifesto", type: "scroll" },
+      { label: "About Us", href: "#manifesto", type: "scroll" },
+      { label: "Careers", href: "#", type: "none" },
+      { label: "Contact", href: "#", type: "none" },
+    ],
+    connect: [
+      { label: "Twitter", href: "#", type: "none" },
+      { label: "Instagram", href: "#", type: "none" },
+      { label: "LinkedIn", href: "#", type: "none" },
+      { label: "GitHub", href: "#", type: "none" },
+    ],
+  };
+
+  const renderLink = (link: any) => {
+    if (link.type === "scroll") {
+      return (
+        <a
+          href={link.href}
+          onClick={(e) => handleScroll(e, link.href)}
+          className="text-sm opacity-70 hover:opacity-100 hover:translate-x-2 transition-all duration-300 cursor-pointer block"
+        >
+          {link.label}
+        </a>
+      );
+    } else if (link.type === "link") {
+      return (
+        <Link
+          href={link.href}
+          className="text-sm opacity-70 hover:opacity-100 hover:translate-x-2 transition-all duration-300 cursor-pointer block"
+        >
+          {link.label}
+        </Link>
+      );
+    } else {
+      return (
+        <span className="text-sm opacity-50 cursor-not-allowed block">
+          {link.label}
+        </span>
+      );
+    }
+  };
+
   return (
     <footer className="relative bg-[#0A3323] text-[#F3F6F4] pt-32 px-6 lg:px-12 overflow-hidden">
-      {/* Top Divider Line */}
-      <motion.div 
+      <motion.div
         initial={{ scaleX: 0 }}
         whileInView={{ scaleX: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 1.5, ease: "circOut" }}
-        className="w-full h-[1px] bg-[#F3F6F4]/20 mb-20 origin-left" 
+        className="w-full h-[1px] bg-[#F3F6F4]/20 mb-20 origin-left"
       />
 
-      <div className="flex flex-col lg:flex-row justify-between gap-16 mb-20">
-        {/* Left Column - Call to Action */}
-        <div className="max-w-2xl">
-          <h3 className="text-4xl md:text-6xl font-serif leading-tight mb-8">
-            Ready to close the loop <br />
-            <span className="text-[#D4FF47] italic">on food waste?</span>
-          </h3>
-          <Link href="/login">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.95 }}
-              className="group relative flex items-center gap-4 bg-[#F3F6F4] text-[#0A3323] pl-8 pr-3 py-3 rounded-full text-lg font-bold overflow-hidden transition-all"
-            >
-              <span className="relative z-10">Get Started Free</span>
-              <div className="w-12 h-12 bg-[#0A3323] rounded-full flex items-center justify-center group-hover:bg-[#D4FF47] transition-colors duration-300">
-                <ArrowUpRight className="text-[#F3F6F4] group-hover:text-[#0A3323] transition-colors duration-300" size={24} />
-              </div>
-            </motion.button>
-          </Link>
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row justify-between gap-16 mb-20">
+          <div className="max-w-2xl">
+            <h3 className="text-4xl md:text-6xl font-serif leading-tight mb-8">
+              Ready to close the loop <br />
+              <span className="text-[#D4FF47] italic">on food waste?</span>
+            </h3>
+            <Link href="/login">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                className="group relative flex items-center gap-4 bg-[#F3F6F4] text-[#0A3323] pl-8 pr-3 py-3 rounded-full text-lg font-bold overflow-hidden transition-all"
+              >
+                <span className="relative z-10">Start Now</span>
+                <div className="w-12 h-12 bg-[#0A3323] rounded-full flex items-center justify-center group-hover:bg-[#D4FF47] transition-colors duration-300">
+                  <ArrowUpRight
+                    className="text-[#F3F6F4] group-hover:text-[#0A3323] transition-colors duration-300"
+                    size={24}
+                  />
+                </div>
+              </motion.button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-12 lg:gap-20">
+            <div className="flex flex-col gap-6">
+              <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">
+                Platform
+              </h4>
+              {footerLinks.platform.map((link) => (
+                <div key={link.label}>{renderLink(link)}</div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-6">
+              <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">
+                Company
+              </h4>
+              {footerLinks.company.map((link) => (
+                <div key={link.label}>{renderLink(link)}</div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-6">
+              <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">
+                Connect
+              </h4>
+              {footerLinks.connect.map((link) => (
+                <div key={link.label}>{renderLink(link)}</div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Right Column - Navigation Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-12 lg:gap-24">
-          {/* Column 1 */}
-          <div className="flex flex-col gap-6">
-            <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">Platform</h4>
-            {['Features', 'Pricing', 'Login', 'Sign Up'].map((item) => (
-              <a key={item} href="#" className="text-sm opacity-70 hover:opacity-100 hover:translate-x-2 transition-all duration-300 cursor-pointer">
-                {item}
-              </a>
-            ))}
-          </div>
-
-          {/* Column 2 */}
-          <div className="flex flex-col gap-6">
-            <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">Company</h4>
-            {['Manifesto', 'About Us', 'Careers', 'Contact'].map((item) => (
-              <a key={item} href="#" className="text-sm opacity-70 hover:opacity-100 hover:translate-x-2 transition-all duration-300 cursor-pointer">
-                {item}
-              </a>
-            ))}
-          </div>
-
-          {/* Column 3 */}
-          <div className="flex flex-col gap-6">
-            <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">Connect</h4>
-            {['Twitter', 'Instagram', 'LinkedIn', 'GitHub'].map((item) => (
-              <a key={item} href="#" className="text-sm opacity-70 hover:opacity-100 hover:translate-x-2 transition-all duration-300 cursor-pointer">
-                {item}
-              </a>
-            ))}
-          </div>
+        <div className="w-full flex justify-between items-center pb-10 text-[10px] uppercase tracking-widest opacity-40 border-t border-[#F3F6F4]/10 pt-8">
+          <span>Dhaka, Bangladesh</span>
+          <span>© 2024 Eco-Loop Inc.</span>
         </div>
-      </div>
-
-      {/* Bottom Section - Standard Copyright */}
-      <div className="w-full flex justify-between items-center pb-10 text-[10px] uppercase tracking-widest opacity-40 border-t border-[#F3F6F4]/10 pt-8">
-         <span>Dhaka, Bangladesh</span>
-         <span>© 2024 Eco-Loop Inc.</span>
       </div>
     </footer>
   );
 };
-
-/* --------------------------------------------------------------------------
-   MAIN PAGE LAYOUT
-   -------------------------------------------------------------------------- */
 
 export default function LandingPage() {
   return (
