@@ -1,0 +1,51 @@
+import mongoose, { Schema, model, models } from "mongoose";
+
+const UserSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    householdSize: { type: Number, default: 1 },
+    dietaryPreferences: [String],
+    budgetRange: String,
+    location: String,
+  },
+  { timestamps: true }
+);
+
+const InventorySchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    name: { type: String, required: true },
+    category: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    unit: { type: String, default: "pcs" },
+    expirationDate: Date,
+    costPerUnit: Number,
+
+    status: {
+      type: String,
+      enum: ["ACTIVE", "CONSUMED", "WASTED"],
+      default: "ACTIVE",
+    },
+
+    imageUrl: String,
+
+    aiTags: [String],
+    source: { type: String, enum: ["MANUAL", "SCAN"], default: "MANUAL" },
+  },
+  { timestamps: true }
+);
+
+const ResourceSchema = new Schema({
+  title: { type: String, required: true },
+  description: String,
+  url: String,
+  category: { type: String, required: true },
+  type: { type: String, enum: ["Article", "Video", "Tip"], required: true },
+});
+
+export const User = models.User || model("User", UserSchema);
+export const Inventory =
+  models.Inventory || model("Inventory", InventorySchema);
+export const Resource = models.Resource || model("Resource", ResourceSchema);
