@@ -21,11 +21,7 @@ export default auth((req) => {
   );
 
   if (isProtectedRoute && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/", nextUrl));
-  }
-
-  if (isLoggedIn && nextUrl.pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    return NextResponse.redirect(new URL("/login", nextUrl)); // Changed to /login since / is now landing
   }
 
   const response = NextResponse.next();

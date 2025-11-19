@@ -2,13 +2,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Leaf, LayoutGrid, ScanLine, BookOpen, User } from 'lucide-react';
+// 1. Import Home Icon
+import { Leaf, LayoutGrid, ScanLine, BookOpen, User, Home } from 'lucide-react';
 import { THEME } from '@/lib/theme';
 
 export const MobileNavigation = () => {
   const pathname = usePathname();
   
   const navItems = [
+    { id: 'home', icon: Home, path: '/' },
     { id: 'dashboard', icon: LayoutGrid, path: '/dashboard' },
     { id: 'inventory', icon: Leaf, path: '/inventory' },
     { id: 'scan', icon: ScanLine, path: '/scan' },
@@ -20,7 +22,10 @@ export const MobileNavigation = () => {
     <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md">
       <div className={`${THEME.glass} rounded-full p-2 flex justify-between items-center shadow-2xl`}>
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.path);
+          const isActive = item.path === '/' 
+            ? pathname === '/' 
+            : pathname.startsWith(item.path);
+
           return (
             <Link
               key={item.id}

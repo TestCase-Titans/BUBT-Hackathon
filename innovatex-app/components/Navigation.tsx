@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Leaf, LayoutGrid, ScanLine, BookOpen, User, LogOut } from 'lucide-react';
+import { Leaf, LayoutGrid, ScanLine, BookOpen, User, LogOut, Home } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 export const DesktopSidebar = () => {
@@ -10,6 +10,7 @@ export const DesktopSidebar = () => {
   const { logout } = useApp();
 
   const navItems = [
+    { id: 'home', icon: Home, label: 'Home', path: '/' }, 
     { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', path: '/dashboard' },
     { id: 'inventory', icon: Leaf, label: 'My Pantry', path: '/inventory' },
     { id: 'scan', icon: ScanLine, label: 'Smart Scan', path: '/scan' },
@@ -31,7 +32,10 @@ export const DesktopSidebar = () => {
 
        <nav className="flex-1 space-y-2">
           {navItems.map(item => {
-            const isActive = pathname.startsWith(item.path);
+            const isActive = item.path === '/' 
+                ? pathname === '/' 
+                : pathname.startsWith(item.path);
+
             return (
               <Link
                 key={item.id}

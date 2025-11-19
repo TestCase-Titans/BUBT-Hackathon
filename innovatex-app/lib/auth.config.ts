@@ -3,13 +3,12 @@ import type { NextAuthConfig } from "next-auth";
 export const authConfig = {
   providers: [],
   pages: {
-    signIn: '/',
+    signIn: '/login',
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       
-      // 1. Define protected routes
       const protectedRoutes = [
         "/dashboard", 
         "/inventory", 
@@ -25,10 +24,6 @@ export const authConfig = {
       if (isProtectedRoute) {
         if (isLoggedIn) return true;
         return false;
-      }
-      
-      if (isLoggedIn && nextUrl.pathname === '/') {
-        return Response.redirect(new URL('/dashboard', nextUrl));
       }
 
       return true;
