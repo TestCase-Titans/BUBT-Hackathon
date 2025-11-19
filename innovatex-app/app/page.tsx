@@ -8,7 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { ReactLenis, useLenis } from "lenis/react";
 import { useApp } from "@/context/AppContext";
-import { Leaf, ArrowUpRight, ScanLine, Box, Sparkles } from "lucide-react";
+import { Leaf, ArrowDown, ScanLine, Box, Sparkles } from "lucide-react";
 import { image } from "framer-motion/client";
 
 // Register GSAP plugins
@@ -57,7 +57,7 @@ const Navbar = () => {
       </div>
 
       <div className="hidden md:flex gap-8 font-medium text-sm uppercase tracking-widest">
-        {["Manifesto", "Features", "Impact"].map((item) => (
+        {["Features", "Manifesto", "Impact"].map((item) => (
           <a
             key={item}
             href={`#${item.toLowerCase()}`}
@@ -107,38 +107,37 @@ const Hero = () => {
     { scope: container }
   );
 
+  // Helper for smooth scroll on click
+  const scrollToContent = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Assuming you have Lenis context or standard scroll
+    const marquee = document.querySelector("#marquee-section"); // We will add this ID to marquee
+    marquee?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <section
       ref={container}
       className="relative h-screen w-full bg-[#0A3323] flex flex-col justify-center px-6 lg:px-20 overflow-hidden"
     >
+      {/* --- Background Animations (Kept same) --- */}
       <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
         <motion.div
           className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"
-          animate={{
-            rotate: 360,
-          }}
-          transition={{
-            duration: 60,
-            repeat: Infinity,
-            ease: "linear",
-          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
         />
       </div>
-
       <motion.div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-[#D4FF47] rounded-full blur-[150px] opacity-5 pointer-events-none"
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.05, 0.08, 0.05],
         }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
 
+      {/* --- Hero Content --- */}
       <div className="relative z-10 mt-20">
         <div className="overflow-hidden">
           <h1 className="ml-8 pl-2 hero-text-line text-[10vw] leading-[0.85] font-serif text-[#F3F6F4] mix-blend-difference cursor-default">
@@ -168,15 +167,74 @@ const Hero = () => {
             The operating system for your kitchen. Track inventory, reduce
             waste, and automate your grocery cycle with AI-driven intelligence.
           </p>
+          
+          {/* --- ANIMATED SCROLL BUTTON --- */}
           <div className="mt-8 md:mt-0">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full border border-[#F3F6F4]/20 flex items-center justify-center text-[#F3F6F4]">
-                <ArrowUpRight />
+            <motion.a
+              href="#features" // Fallback
+              onClick={(e) => {
+                e.preventDefault();
+                // Simple logic to scroll down 1 viewport height
+                window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+              }}
+              className="flex items-center gap-4 group cursor-pointer"
+              whileHover="hover"
+            >
+              <div className="relative w-14 h-14 flex items-center justify-center">
+                {/* 1. Static Background Circle */}
+                <div className="absolute inset-0 rounded-full border border-[#F3F6F4]/20 group-hover:border-[#D4FF47] transition-colors duration-300" />
+                
+                {/* 2. Animated Spinning Dashed Ring (The Loop) */}
+                <motion.div 
+                  className="absolute inset-0 rounded-full border border-dashed border-[#D4FF47]/60"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                />
+
+                {/* 3. Hover Fill Effect */}
+                <motion.div 
+                  className="absolute inset-0 rounded-full bg-[#D4FF47]"
+                  initial={{ scale: 0 }}
+                  variants={{ hover: { scale: 1 } }}
+                  transition={{ duration: 0.3 }}
+                />
+
+                {/* 4. The Arrow Icon */}
+                <motion.div
+                  className="relative z-10 text-[#F3F6F4] group-hover:text-[#0A3323] transition-colors duration-300"
+                  animate={{ 
+                    x: [0, 3, 0], 
+                    y: [0, -3, 0] 
+                  }}
+                  transition={{ 
+                    duration: 2, 
+                    repeat: Infinity, 
+                    ease: "easeInOut" 
+                  }}
+                >
+                  <ArrowDown size={24} />
+                </motion.div>
               </div>
-              <span className="text-[#F3F6F4] text-sm uppercase tracking-widest">
-                Scroll to explore
-              </span>
-            </div>
+
+              <div className="flex flex-col overflow-hidden h-5">
+                 <motion.span 
+                    className="text-[#F3F6F4] text-sm uppercase tracking-widest group-hover:text-[#D4FF47] transition-colors duration-300"
+                    variants={{
+                      hover: { y: -20 }
+                    }}
+                 >
+                   Scroll to explore
+                 </motion.span>
+                 <motion.span 
+                    className="text-[#D4FF47] text-sm uppercase tracking-widest absolute translate-y-5"
+                    variants={{
+                      hover: { y: 0 }
+                    }}
+                 >
+                   Let's Go
+                 </motion.span>
+              </div>
+            </motion.a>
           </div>
         </div>
       </div>
@@ -381,15 +439,25 @@ const Split = ({
   children: string;
   className?: string;
 }) => {
+  // 1. Split the text into words first
+  const words = children.split(" ");
+
   return (
     <span className={className}>
-      {children.split("").map((char, i) => (
+      {words.map((word, wordIndex) => (
         <span
-          key={i}
-          className="typewriter-char opacity-0 inline-block"
-          style={{ whiteSpace: "pre" }}
+          key={wordIndex}
+          className="inline-block whitespace-nowrap"
         >
-          {char}
+          {word.split("").map((char, charIndex) => (
+            <span
+              key={charIndex}
+              className="typewriter-char opacity-0 inline-block"
+            >
+              {char}
+            </span>
+          ))}
+          <span className="inline-block">&nbsp;</span>
         </span>
       ))}
     </span>
@@ -404,7 +472,7 @@ const Manifesto = () => {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: container.current,
-          start: "top 75%",
+          start: "top 75%", // Triggers when top of section hits 75% of viewport height
           toggleActions: "play none none reverse",
         },
       });
@@ -414,17 +482,7 @@ const Manifesto = () => {
         duration: 0.2,
         stagger: 0.03,
         ease: "none",
-      }).from(
-        ".manifesto-stat",
-        {
-          y: 40,
-          opacity: 0,
-          duration: 0.8,
-          stagger: 0.2,
-          ease: "power3.out",
-        },
-        "-=0.5"
-      );
+      });
     },
     { scope: container }
   );
@@ -432,7 +490,7 @@ const Manifesto = () => {
   return (
     <section
       ref={container}
-      className="py-32 px-6 lg:px-20 bg-[#0A3323] text-[#F3F6F4]"
+      className="pt-32 pb-16 px-6 lg:px-20 bg-[#0A3323] text-[#F3F6F4]"
       id="manifesto"
     >
       <div className="max-w-5xl mx-auto">
@@ -456,24 +514,59 @@ const Manifesto = () => {
           <br />
           <Split>on consumption.</Split>
         </h2>
+      </div>
+    </section>
+  );
+};
 
-        <div
-          className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8"
-          id="impact"
-        >
-          {[
-            { label: "Households", value: "500+" },
-            { label: "Waste Saved", value: "1.2k kg" },
-            { label: "Money Saved", value: "$45k" },
-          ].map((stat, i) => (
+const Impact = () => {
+  const container = useRef(null);
+
+  useGSAP(
+    () => {
+      gsap.from(".impact-stat", {
+        scrollTrigger: {
+          trigger: container.current,
+          start: "top 80%",
+          toggleActions: "play none none reverse",
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: "power3.out",
+      });
+    },
+    { scope: container }
+  );
+
+  const stats = [
+    { label: "Households", value: "500+" },
+    { label: "Waste Saved", value: "1.2k kg" },
+    { label: "Money Saved", value: "$45k" },
+  ];
+
+  return (
+    <section
+      ref={container}
+      id="impact"
+      className="pt-10 pb-32 px-6 lg:px-20 bg-[#0A3323] text-[#F3F6F4]"
+    >
+      <div className="max-w-5xl mx-auto">
+        <div className="w-full h-px bg-[#F3F6F4]/10 mb-16" />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+          {stats.map((stat, i) => (
             <div
               key={i}
-              className="manifesto-stat border-t border-[#F3F6F4]/20 pt-6"
+              className="impact-stat border-l-2 border-[#D4FF47] pl-6 md:border-l-0 md:border-t md:pt-6 md:pl-0 border-t-[#F3F6F4]/20"
             >
-              <h3 className="text-5xl font-bold text-[#D4FF47] mb-2">
+              <h3 className="text-6xl md:text-7xl font-bold text-[#D4FF47] mb-2 font-sans tracking-tight">
                 {stat.value}
               </h3>
-              <p className="uppercase tracking-widest text-xs">{stat.label}</p>
+              <p className="uppercase tracking-widest text-sm font-medium opacity-80">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
@@ -622,6 +715,8 @@ export default function LandingPage() {
         <Marquee />
         <FeaturesHorizontal />
         <Manifesto />
+        <Impact />
+        
         <Footer />
       </main>
     </ReactLenis>
