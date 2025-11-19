@@ -2,27 +2,89 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Leaf } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { Leaf, AlertCircle } from 'lucide-react';
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
-  const { login } = useApp();
+  const router = useRouter();
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleAuth = (e) => {
+  // Form State
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    householdSize: 1,
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError("");
+
+    try {
+      if (isRegister) {
+        // --- REGISTRATION FLOW ---
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            householdSize: formData.householdSize,
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || "Registration failed");
+        }
+
+        // If registration successful, sign them in automatically
+        const loginRes = await signIn("credentials", {
+          redirect: false,
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (loginRes?.error) {
+            router.push('/'); // Stay here if auto-login fails
+        } else {
+            router.push('/dashboard');
+        }
+
+      } else {
+        // --- LOGIN FLOW ---
+        const result = await signIn("credentials", {
+          redirect: false,
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (result?.error) {
+          throw new Error("Invalid email or password");
+        } else {
+          router.push('/dashboard');
+        }
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-      login({ email: "demo@example.com" });
-    }, 1500);
+    }
   };
 
   return (
     <div className="h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-[#F3F6F4]">
-      {/* Left Side - Visual (Fixed Height for Desktop) */}
+      {/* Left Side - Visual */}
       <div className="w-full lg:w-1/2 h-[40vh] lg:h-full relative overflow-hidden flex items-center justify-center bg-[#0A3323]">
         <div className="absolute inset-0 opacity-20">
             <motion.div 
@@ -46,7 +108,7 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Right Side - Form (Full Height for Desktop) */}
+      {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 lg:p-16 relative bg-[#F3F6F4]">
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
@@ -60,27 +122,71 @@ export default function AuthPage() {
             {isRegister ? "Start your zero-waste journey today." : "Log in to manage your sustainable pantry."}
           </p>
 
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl flex items-center gap-2 border border-red-100">
+                <AlertCircle size={16} />
+                {error}
+            </div>
+          )}
+
           <form onSubmit={handleAuth} className="space-y-4">
             {isRegister && (
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Full Name</label>
-                <input type="text" className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" placeholder="Jane Doe" />
-              </div>
+              <>
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Full Name</label>
+                    <input 
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        type="text" 
+                        required={isRegister}
+                        className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
+                        placeholder="Jane Doe" 
+                    />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Household Size</label>
+                    <input 
+                        name="householdSize"
+                        value={formData.householdSize}
+                        onChange={handleChange}
+                        type="number" 
+                        min="1"
+                        className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
+                    />
+                </div>
+              </>
             )}
             
             <div className="space-y-1">
               <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Email</label>
-              <input type="email" className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" placeholder="jane@example.com" />
+              <input 
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                type="email" 
+                required
+                className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
+                placeholder="jane@example.com" 
+              />
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Password</label>
-              <input type="password" className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" placeholder="••••••••" />
+              <input 
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                type="password" 
+                required
+                className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all" 
+                placeholder="••••••••" 
+              />
             </div>
 
             <button 
               disabled={loading}
-              className="w-full bg-[#0A3323] text-[#D4FF47] p-4 rounded-xl font-bold text-lg mt-6 hover:bg-[#0F4D34] transition-colors relative overflow-hidden"
+              className="w-full bg-[#0A3323] text-[#D4FF47] p-4 rounded-xl font-bold text-lg mt-6 hover:bg-[#0F4D34] transition-colors relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Processing..." : isRegister ? "Create Account" : "Sign In"}
             </button>
@@ -88,7 +194,10 @@ export default function AuthPage() {
 
           <div className="mt-6 text-center">
             <button 
-              onClick={() => setIsRegister(!isRegister)}
+              onClick={() => {
+                  setIsRegister(!isRegister);
+                  setError("");
+              }}
               type="button"
               className="text-[#0A3323] text-sm hover:underline font-medium"
             >
