@@ -8,14 +8,15 @@ import PageWrapper from '@/components/PageWrapper';
 
 export default function DashboardPage() {
   const { inventory } = useApp();
+  const safeInventory = Array.isArray(inventory) ? inventory : [];
 
   const stats = [
-    { label: 'Items Tracked', value: inventory.length, icon: Leaf },
+    { label: 'Items Tracked', value: safeInventory.length, icon: Leaf },
     { label: 'Waste Saved', value: '2.4kg', icon: Droplet },
     { label: 'Days Streak', value: '12', icon: Sun },
   ];
 
-  const expiringItems = inventory.filter((i: any) => i.expiryDays < 3);
+  const expiringItems = safeInventory.filter((i: any) => i.expiryDays < 3);
 
   return (
     <PageWrapper>
