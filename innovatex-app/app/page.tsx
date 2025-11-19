@@ -8,7 +8,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { ReactLenis, useLenis } from "lenis/react";
-import { useApp } from "@/context/AppContext"; // Import User Context
+import { useApp } from "@/context/AppContext"; 
 import {
   Leaf,
   ArrowRight,
@@ -28,7 +28,24 @@ gsap.registerPlugin(useGSAP);
    -------------------------------------------------------------------------- */
 
 const Navbar = () => {
-  const { user } = useApp(); // Get user state to handle button logic
+  const { user } = useApp();
+  const lenis = useLenis(); // Access the smooth scroll instance
+
+  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    e.preventDefault(); // Stop default jump behavior
+    if (lenis) {
+      // Use Lenis to scroll smoothly to the target with an offset
+      lenis.scrollTo(targetId, { 
+        duration: 1.5,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Exponential ease out
+        offset: -100 // Adjust this value as needed. Negative pulls it up.
+      });
+    } else {
+      // Fallback if Lenis isn't ready
+      const element = document.querySelector(targetId);
+      element?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <motion.nav
@@ -51,14 +68,14 @@ const Navbar = () => {
           <a
             key={item}
             href={`#${item.toLowerCase()}`}
-            className="hover:text-[#D4FF47] transition-colors"
+            onClick={(e) => handleScroll(e, `#${item.toLowerCase()}`)}
+            className="hover:text-[#D4FF47] transition-colors cursor-pointer"
           >
             {item}
           </a>
         ))}
       </div>
 
-      {/* Dynamic Link: Goes to Dashboard if logged in, otherwise Login */}
       <Link href={user ? "/dashboard" : "/login"}>
         <button className="group relative px-6 py-3 rounded-full border border-[#F3F6F4]/30 overflow-hidden bg-transparent hover:bg-[#D4FF47] transition-colors duration-300">
           <span className="relative z-10 text-xs font-bold uppercase tracking-wider group-hover:text-[#0A3323] transition-colors">
@@ -72,7 +89,6 @@ const Navbar = () => {
 
 const Hero = () => {
   const container = useRef(null);
-  const textRef = useRef(null);
 
   useGSAP(
     () => {
@@ -182,25 +198,22 @@ const Marquee = () => {
   const secondText = useRef(null);
   const slider = useRef(null);
 
-  // Use refs for animation state to persist across renders without re-triggering them
   const xPercent = useRef(0);
   const direction = useRef(-1);
-  const speed = useRef(1); // Current speed multiplier
-  const targetSpeed = useRef(1); // Target speed (1 = normal, 0.1 = slow)
-  const requestRef = useRef<number | null>(null); // Initialized with null
+  const speed = useRef(1); 
+  const targetSpeed = useRef(1); 
+  const requestRef = useRef<number | null>(null);
 
   useGSAP(() => {
     const animate = () => {
       if (xPercent.current <= -100) xPercent.current = 0;
       if (xPercent.current > 0) xPercent.current = -100;
 
-      // Smoothly interpolate current speed towards target speed
       speed.current += (targetSpeed.current - speed.current) * 0.05;
 
       gsap.set(firstText.current, { xPercent: xPercent.current });
       gsap.set(secondText.current, { xPercent: xPercent.current });
 
-      // Apply the speed multiplier to the movement
       xPercent.current += 0.1 * direction.current * speed.current;
 
       requestRef.current = requestAnimationFrame(animate);
@@ -218,7 +231,6 @@ const Marquee = () => {
   return (
     <div
       className="relative flex overflow-hidden bg-[#D4FF47] py-8 cursor-default"
-      // Set target speed on hover events
       onMouseEnter={() => {
         targetSpeed.current = 0.1;
       }}
@@ -277,28 +289,28 @@ const FeaturesHorizontal = () => {
       title: "Smart Scan",
       desc: "Snap a photo of your grocery receipt. Our AI catalogs everything in seconds, turning paper into digital inventory.",
       icon: ScanLine,
-      image: "/images/1.jpg",
+      image: "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=2574&auto=format&fit=crop", 
     },
     {
       id: "02",
       title: "Live Inventory",
       desc: "Know exactly what you have. Get automated notifications before food expires so you can cook it, not toss it.",
       icon: Box,
-      image: "/images/2.jpg",
+      image: "https://images.unsplash.com/photo-1584473457406-6240486418e9?q=80&w=2574&auto=format&fit=crop",
     },
     {
       id: "03",
       title: "Impact Score",
       desc: "Gamify your sustainability. Track your carbon footprint reduction in real-time and compete with your neighborhood.",
       icon: Sparkles,
-      image: "/images/3.jpg",
+      image: "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=2682&auto=format&fit=crop",
     },
   ];
 
   return (
     <section
       ref={triggerRef}
-      id="features" // Added ID for navigation
+      id="features"
       className="w-full h-screen overflow-hidden bg-[#0A3323]"
     >
       <div ref={sectionRef} className="h-full flex w-[300vw]">
@@ -314,7 +326,7 @@ const FeaturesHorizontal = () => {
                 alt={f.title}
                 className="w-full h-full object-cover opacity-60 grayscale-[20%] hover:grayscale-0 transition-all duration-700 transform scale-105"
               />
-              {/* Cinematic Overlay for Text Readability */}
+              {/* Cinematic Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0A3323] via-[#0A3323]/80 to-[#0A3323]/30 mix-blend-multiply" />
               <div className="absolute inset-0 bg-black/20" />
             </div>
@@ -370,7 +382,6 @@ const FeaturesHorizontal = () => {
   );
 };
 
-// Helper component to split text into characters for the typewriter effect
 const Split = ({
   children,
   className,
@@ -406,14 +417,12 @@ const Manifesto = () => {
         },
       });
 
-      // Animate the typewriter characters
       tl.to(".typewriter-char", {
         opacity: 1,
         duration: 0.2,
         stagger: 0.03,
         ease: "none",
       })
-        // Animate stats sliding up after text
         .from(
           ".manifesto-stat",
           {
@@ -433,11 +442,10 @@ const Manifesto = () => {
     <section
       ref={container}
       className="py-32 px-6 lg:px-20 bg-[#0A3323] text-[#F3F6F4]"
-      id="manifesto"
+      id="manifesto" // Manifesto section ID
     >
       <div className="max-w-5xl mx-auto">
         <div className="text-xl md:text-3xl font-light leading-relaxed opacity-80 mb-12">
-          {/* FIXED: Apply Split only to text strings */}
           <div>
             <Split>
               The modern kitchen is broken. We buy too much, eat too little, and
@@ -449,7 +457,6 @@ const Manifesto = () => {
           </div>
         </div>
 
-        {/* FIXED: Apply Split only to text strings */}
         <h2 className="text-5xl md:text-8xl font-serif leading-tight">
           <Split>We built Eco-Loop to</Split> <br />
           <span className="italic text-[#D4FF47]">
@@ -461,7 +468,7 @@ const Manifesto = () => {
 
         <div
           className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8"
-          id="impact"
+          id="impact" // Impact section ID
         >
           {[
             { label: "Households", value: "500+" },
@@ -486,21 +493,75 @@ const Manifesto = () => {
 
 const Footer = () => {
   return (
-    <footer className="bg-[#0A3323] text-[#F3F6F4] pt-20 pb-10 px-6">
-      <div className="w-full h-px bg-[#F3F6F4]/20 mb-20" />
-      <div className="flex flex-col items-center justify-center text-center">
-        <h2 className="text-[15vw] font-serif leading-none text-[#D4FF47] mb-10">
-          Eco-Loop
-        </h2>
-        <Link href="/login">
-          <button className="bg-[#F3F6F4] text-[#0A3323] px-12 py-6 rounded-full text-xl font-bold hover:bg-[#D4FF47] hover:scale-105 transition-all duration-300">
-            Get Started Now
-          </button>
-        </Link>
+    <footer className="relative bg-[#0A3323] text-[#F3F6F4] pt-32 px-6 lg:px-12 overflow-hidden">
+      {/* Top Divider Line */}
+      <motion.div 
+        initial={{ scaleX: 0 }}
+        whileInView={{ scaleX: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.5, ease: "circOut" }}
+        className="w-full h-[1px] bg-[#F3F6F4]/20 mb-20 origin-left" 
+      />
+
+      <div className="flex flex-col lg:flex-row justify-between gap-16 mb-20">
+        {/* Left Column - Call to Action */}
+        <div className="max-w-2xl">
+          <h3 className="text-4xl md:text-6xl font-serif leading-tight mb-8">
+            Ready to close the loop <br />
+            <span className="text-[#D4FF47] italic">on food waste?</span>
+          </h3>
+          <Link href="/login">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              className="group relative flex items-center gap-4 bg-[#F3F6F4] text-[#0A3323] pl-8 pr-3 py-3 rounded-full text-lg font-bold overflow-hidden transition-all"
+            >
+              <span className="relative z-10">Get Started Free</span>
+              <div className="w-12 h-12 bg-[#0A3323] rounded-full flex items-center justify-center group-hover:bg-[#D4FF47] transition-colors duration-300">
+                <ArrowUpRight className="text-[#F3F6F4] group-hover:text-[#0A3323] transition-colors duration-300" size={24} />
+              </div>
+            </motion.button>
+          </Link>
+        </div>
+
+        {/* Right Column - Navigation Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-12 lg:gap-24">
+          {/* Column 1 */}
+          <div className="flex flex-col gap-6">
+            <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">Platform</h4>
+            {['Features', 'Pricing', 'Login', 'Sign Up'].map((item) => (
+              <a key={item} href="#" className="text-sm opacity-70 hover:opacity-100 hover:translate-x-2 transition-all duration-300 cursor-pointer">
+                {item}
+              </a>
+            ))}
+          </div>
+
+          {/* Column 2 */}
+          <div className="flex flex-col gap-6">
+            <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">Company</h4>
+            {['Manifesto', 'About Us', 'Careers', 'Contact'].map((item) => (
+              <a key={item} href="#" className="text-sm opacity-70 hover:opacity-100 hover:translate-x-2 transition-all duration-300 cursor-pointer">
+                {item}
+              </a>
+            ))}
+          </div>
+
+          {/* Column 3 */}
+          <div className="flex flex-col gap-6">
+            <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">Connect</h4>
+            {['Twitter', 'Instagram', 'LinkedIn', 'GitHub'].map((item) => (
+              <a key={item} href="#" className="text-sm opacity-70 hover:opacity-100 hover:translate-x-2 transition-all duration-300 cursor-pointer">
+                {item}
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
-      <div className="flex justify-between items-end mt-32 text-xs uppercase tracking-widest opacity-50">
-        <span>© 2024 Eco-Loop Inc.</span>
-        <span>Designed for Sustainability</span>
+
+      {/* Bottom Section - Standard Copyright */}
+      <div className="w-full flex justify-between items-center pb-10 text-[10px] uppercase tracking-widest opacity-40 border-t border-[#F3F6F4]/10 pt-8">
+         <span>Dhaka, Bangladesh</span>
+         <span>© 2024 Eco-Loop Inc.</span>
       </div>
     </footer>
   );
