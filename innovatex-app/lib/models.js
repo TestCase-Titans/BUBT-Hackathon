@@ -13,6 +13,7 @@ const UserSchema = new Schema(
   { timestamps: true }
 );
 
+// The User's Personal Pantry Item
 const InventorySchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -37,6 +38,16 @@ const InventorySchema = new Schema(
   { timestamps: true }
 );
 
+// The Master Database of Foods (Seeded Data)
+const FoodItemSchema = new Schema({
+  name: String,
+  category: String,
+  typicalExpiryDays: Number,
+  costPerUnit: Number,
+  unit: String,
+  imageUrl: String,
+});
+
 const ResourceSchema = new Schema({
   title: { type: String, required: true },
   description: String,
@@ -49,3 +60,4 @@ export const User = models.User || model("User", UserSchema);
 export const Inventory =
   models.Inventory || model("Inventory", InventorySchema);
 export const Resource = models.Resource || model("Resource", ResourceSchema);
+export const FoodItem = models.FoodItem || model("FoodItem", FoodItemSchema);
