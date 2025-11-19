@@ -7,15 +7,15 @@ import {
   Search,
   X,
   Calendar,
-  DollarSign,
   CheckCircle,
-  AlertTriangle,
+  ArrowLeft,
+  Hash,
+  Coins, // Imported generic coins icon instead of DollarSign
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
 import PageWrapper from "@/components/PageWrapper";
 
-// Categories for filter
 const CATEGORIES = [
   "All",
   "Dairy",
@@ -30,42 +30,77 @@ export default function InventoryPage() {
   const { inventory, setInventory } = useApp();
   const [filter, setFilter] = useState("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null); // For details view
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  
+  // Data States
   const [foodDatabase, setFoodDatabase] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loadingFoods, setLoadingFoods] = useState(false);
 
-  // Fetch the Master Food Database when the modal opens
+  // Configuration State
+  const [configuringFood, setConfiguringFood] = useState<any>(null);
+  const [addItemForm, setAddItemForm] = useState({
+    quantity: 1,
+    unit: "pcs",
+    expiryDays: 7,
+    cost: 0,
+  });
+
+  // Fetch Master Database
   useEffect(() => {
     if (isAddModalOpen && foodDatabase.length === 0) {
+      setLoadingFoods(true);
       fetch("/api/foods")
         .then((res) => res.json())
-        .then((data) => setFoodDatabase(data));
+        .then((data) => {
+          setFoodDatabase(data);
+          setLoadingFoods(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load foods", err);
+          setLoadingFoods(false);
+        });
     }
   }, [isAddModalOpen]);
 
-  // Filter Logic
+  // Reset config when modal closes
+  useEffect(() => {
+    if (!isAddModalOpen) {
+        setConfiguringFood(null);
+        setSearchTerm("");
+    }
+  }, [isAddModalOpen]);
+
   const safeInventory = Array.isArray(inventory) ? inventory : [];
   const filteredItems =
     filter === "All"
       ? safeInventory
       : safeInventory.filter((item: any) => item.category === filter);
 
-  // Handle Adding an Item to Inventory
-  const handleAddToInventory = async (foodItem: any) => {
-    // Calculate a default expiration date based on typical expiry
+  const handleSelectFood = (foodItem: any) => {
+    setConfiguringFood(foodItem);
+    setAddItemForm({
+        quantity: 1,
+        unit: foodItem.unit || "pcs",
+        expiryDays: foodItem.typicalExpiryDays || 7,
+        cost: foodItem.costPerUnit || 0
+    });
+  };
+
+  const handleConfirmAdd = async () => {
+    if (!configuringFood) return;
+
     const expiryDate = new Date();
-    expiryDate.setDate(
-      expiryDate.getDate() + (foodItem.typicalExpiryDays || 7)
-    );
+    expiryDate.setDate(expiryDate.getDate() + addItemForm.expiryDays);
 
     const newItem = {
-      name: foodItem.name,
-      category: foodItem.category,
-      quantity: 1,
-      unit: foodItem.unit || "pcs",
+      name: configuringFood.name,
+      category: configuringFood.category,
+      quantity: addItemForm.quantity,
+      unit: addItemForm.unit,
       expirationDate: expiryDate,
-      costPerUnit: foodItem.costPerUnit,
-      imageUrl: foodItem.image,
+      costPerUnit: addItemForm.cost,
+      imageUrl: configuringFood.image,
     };
 
     try {
@@ -77,25 +112,50 @@ export default function InventoryPage() {
 
       if (res.ok) {
         const savedItem = await res.json();
-        // Update local state to reflect change immediately
-        // We need to format it to match the UI structure
+        
         const formatted = {
-          ...savedItem,
           id: savedItem._id,
-          expiryDays: foodItem.typicalExpiryDays || 7,
+          name: savedItem.name,
+          category: savedItem.category,
+          quantity: savedItem.quantity,
+          unit: savedItem.unit,
+          image: savedItem.imageUrl || "📦",
+          expiryDays: addItemForm.expiryDays,
+          status: savedItem.status,
+          costPerUnit: savedItem.costPerUnit
         };
+        
         setInventory((prev: any) => [...prev, formatted]);
         setIsAddModalOpen(false);
+        setConfiguringFood(null);
       }
     } catch (error) {
-      console.error("Failed to add item");
+      console.error("Failed to add item", error);
     }
   };
 
   const handleDelete = async (id: string) => {
-    // In a real app, add a DELETE API call here
-    setInventory(safeInventory.filter((i: any) => i.id !== id));
-    setSelectedItem(null);
+    try {
+      await fetch(`/api/inventory/${id}`, { method: "DELETE" });
+      setInventory(safeInventory.filter((i: any) => i.id !== id));
+      setSelectedItem(null);
+    } catch (error) {
+      console.error("Delete failed", error);
+    }
+  };
+
+  const handleConsume = async (id: string) => {
+    try {
+      await fetch(`/api/inventory/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CONSUMED" }),
+      });
+      setInventory(safeInventory.filter((i: any) => i.id !== id));
+      setSelectedItem(null);
+    } catch (error) {
+      console.error("Consume failed", error);
+    }
   };
 
   return (
@@ -176,9 +236,10 @@ export default function InventoryPage() {
                         <span className="text-xs font-mono bg-white border border-gray-100 px-2 py-0.5 rounded-md text-gray-600">
                           {item.quantity} {item.unit}
                         </span>
+                        {/* CHANGED: Currency Symbol to Taka */}
                         {item.costPerUnit && (
                           <span className="text-xs text-gray-400">
-                            ${item.costPerUnit}/{item.unit}
+                            ৳{item.costPerUnit}/{item.unit}
                           </span>
                         )}
                       </div>
@@ -232,57 +293,134 @@ export default function InventoryPage() {
                 className="bg-[#F3F6F4] w-full max-w-lg rounded-t-3xl lg:rounded-3xl p-6 z-10 shadow-2xl max-h-[85vh] flex flex-col"
               >
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-2xl font-serif text-[#0A3323]">
-                    Add to Pantry
-                  </h3>
-                  <button
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="p-2 bg-white rounded-full hover:bg-gray-100"
-                  >
-                    <X size={20} />
-                  </button>
+                    {configuringFood ? (
+                        <button onClick={() => setConfiguringFood(null)} className="p-2 hover:bg-gray-200 rounded-full">
+                            <ArrowLeft size={20} />
+                        </button>
+                    ) : (
+                         <h3 className="text-2xl font-serif text-[#0A3323]">Add to Pantry</h3>
+                    )}
+                    <button onClick={() => setIsAddModalOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100">
+                        <X size={20} />
+                    </button>
                 </div>
 
-                <div className="relative mb-4">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search food database..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border-none bg-white shadow-sm focus:ring-2 focus:ring-[#0A3323] outline-none"
-                  />
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-                  {foodDatabase
-                    .filter((f) =>
-                      f.name.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map((food) => (
-                      <div
-                        key={food.id}
-                        onClick={() => handleAddToInventory(food)}
-                        className="bg-white p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-[#D4FF47]/20 transition-colors group border border-transparent hover:border-[#D4FF47]"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{food.image || "🍎"}</span>
-                          <div>
-                            <p className="font-bold text-[#0A3323]">
-                              {food.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Expires in ~{food.typicalExpiryDays} days
-                            </p>
-                          </div>
+                {configuringFood ? (
+                    // --- FORM VIEW ---
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-4">
+                            <span className="text-4xl">{configuringFood.image || "🍎"}</span>
+                            <div>
+                                <h4 className="text-xl font-bold text-[#0A3323]">{configuringFood.name}</h4>
+                                <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-md">{configuringFood.category}</span>
+                            </div>
                         </div>
-                        <Plus className="text-[#0A3323] opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    ))}
-                </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold uppercase text-gray-400">Quantity</label>
+                                <div className="flex items-center bg-white rounded-xl p-3 shadow-sm">
+                                    <Hash size={18} className="text-gray-400 mr-2"/>
+                                    <input 
+                                        type="number" 
+                                        value={addItemForm.quantity}
+                                        onChange={(e) => setAddItemForm({...addItemForm, quantity: Number(e.target.value)})}
+                                        className="w-full outline-none font-bold text-[#0A3323]"
+                                    />
+                                </div>
+                            </div>
+                             <div className="space-y-1">
+                                <label className="text-xs font-bold uppercase text-gray-400">Unit</label>
+                                <div className="flex items-center bg-white rounded-xl p-3 shadow-sm">
+                                    <input 
+                                        type="text" 
+                                        value={addItemForm.unit}
+                                        onChange={(e) => setAddItemForm({...addItemForm, unit: e.target.value})}
+                                        className="w-full outline-none font-bold text-[#0A3323]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold uppercase text-gray-400">Expires In (Days)</label>
+                                <div className="flex items-center bg-white rounded-xl p-3 shadow-sm">
+                                    <Calendar size={18} className="text-gray-400 mr-2"/>
+                                    <input 
+                                        type="number" 
+                                        value={addItemForm.expiryDays}
+                                        onChange={(e) => setAddItemForm({...addItemForm, expiryDays: Number(e.target.value)})}
+                                        className="w-full outline-none font-bold text-[#0A3323]"
+                                    />
+                                </div>
+                            </div>
+                             <div className="space-y-1">
+                                <label className="text-xs font-bold uppercase text-gray-400">Cost Per Unit</label>
+                                <div className="flex items-center bg-white rounded-xl p-3 shadow-sm">
+                                    {/* CHANGED: Replaced DollarSign with Taka symbol */}
+                                    <span className="text-gray-400 mr-2 font-bold text-lg">৳</span>
+                                    <input 
+                                        type="number"
+                                        step="10" // CHANGED: Min increment 10
+                                        min="0"   // CHANGED: Min value 0
+                                        value={addItemForm.cost}
+                                        onChange={(e) => setAddItemForm({...addItemForm, cost: Number(e.target.value)})}
+                                        className="w-full outline-none font-bold text-[#0A3323]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={handleConfirmAdd}
+                            className="w-full bg-[#0A3323] text-[#D4FF47] py-4 rounded-xl font-bold text-lg hover:bg-[#0F4D34] transition-colors mt-4"
+                        >
+                            Confirm & Add
+                        </button>
+                    </div>
+                ) : (
+                    // --- SEARCH LIST VIEW ---
+                    <>
+                        <div className="relative mb-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+                            <input
+                                type="text"
+                                placeholder="Search food database..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 rounded-xl border-none bg-white shadow-sm focus:ring-2 focus:ring-[#0A3323] outline-none"
+                            />
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+                        {loadingFoods ? (
+                            <div className="text-center p-8 text-gray-400">Loading foods...</div>
+                        ) : (
+                            foodDatabase
+                                .filter((f) => f.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                .map((food) => (
+                                <div
+                                    key={food.id}
+                                    onClick={() => handleSelectFood(food)}
+                                    className="bg-white p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-[#D4FF47]/20 transition-colors group border border-transparent hover:border-[#D4FF47]"
+                                >
+                                    <div className="flex items-center gap-3">
+                                    <span className="text-2xl">{food.image || "🍎"}</span>
+                                    <div>
+                                        <p className="font-bold text-[#0A3323]">{food.name}</p>
+                                        <p className="text-xs text-gray-500">Expires in ~{food.typicalExpiryDays} days</p>
+                                    </div>
+                                    </div>
+                                    <Plus className="text-[#0A3323] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                ))
+                        )}
+                        {foodDatabase.length === 0 && !loadingFoods && (
+                            <div className="text-center p-8 text-gray-400">No foods found. Try running the seed script.</div>
+                        )}
+                        </div>
+                    </>
+                )}
               </motion.div>
             </div>
           )}
@@ -341,17 +479,17 @@ export default function InventoryPage() {
                   </div>
                   <div className="p-4 bg-[#F3F6F4] rounded-2xl">
                     <div className="flex items-center gap-2 text-gray-500 mb-1 text-xs uppercase font-bold">
-                      <DollarSign size={14} /> Value
+                      <Coins size={14} /> Value {/* CHANGED: Icon */}
                     </div>
                     <p className="text-xl font-bold text-[#0A3323]">
-                      ${selectedItem.costPerUnit || "0.00"}
+                      ৳{selectedItem.costPerUnit || "0.00"} {/* CHANGED: Taka Symbol */}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <button
-                    onClick={() => handleDelete(selectedItem.id)}
+                    onClick={() => handleConsume(selectedItem.id)}
                     className="w-full py-3 bg-[#0A3323] text-[#D4FF47] rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#0F4D34]"
                   >
                     <CheckCircle size={18} /> Mark as Consumed
