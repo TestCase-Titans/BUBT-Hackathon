@@ -1,0 +1,47 @@
+'use client';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Leaf, LayoutGrid, ScanLine, BookOpen, User } from 'lucide-react';
+import { THEME } from '@/lib/theme';
+
+export const MobileNavigation = () => {
+  const pathname = usePathname();
+  
+  const navItems = [
+    { id: 'dashboard', icon: LayoutGrid, path: '/dashboard' },
+    { id: 'inventory', icon: Leaf, path: '/inventory' },
+    { id: 'scan', icon: ScanLine, path: '/scan' },
+    { id: 'resources', icon: BookOpen, path: '/resources' },
+    { id: 'profile', icon: User, path: '/profile' },
+  ];
+
+  return (
+    <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md">
+      <div className={`${THEME.glass} rounded-full p-2 flex justify-between items-center shadow-2xl`}>
+        {navItems.map((item) => {
+          const isActive = pathname.startsWith(item.path);
+          return (
+            <Link
+              key={item.id}
+              href={item.path}
+              className="relative p-3 rounded-full transition-colors duration-300 group flex-1 flex justify-center"
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="nav-pill"
+                  className={`absolute inset-0 ${THEME.primary} rounded-full`}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+              <item.icon 
+                size={24} 
+                className={`relative z-10 transition-colors duration-200 ${isActive ? 'text-[#D4FF47]' : 'text-[#0A3323]/60'}`} 
+              />
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
