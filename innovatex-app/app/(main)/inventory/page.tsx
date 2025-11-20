@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -28,6 +29,29 @@ const CATEGORIES = [
   "Canned",
 ];
 
+// Helper component to render image or emoji safely
+const ItemIcon = ({ src, alt, className, size = "text-3xl" }: { src: string, alt: string, className: string, size?: string }) => {
+  const isUrl = src && (src.startsWith("http") || src.startsWith("/"));
+  
+  return (
+    <div className={`${className} flex items-center justify-center bg-[#F3F6F4] overflow-hidden`}>
+      {isUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img 
+          src={src} 
+          alt={alt} 
+          className="w-full h-full object-cover"
+          onError={(e) => {
+               e.currentTarget.style.display = 'none'; 
+          }}
+        />
+      ) : (
+        <span className={size}>{src || "📦"}</span>
+      )}
+    </div>
+  );
+};
+
 export default function InventoryPage() {
   const { inventory, setInventory } = useApp();
   const [filter, setFilter] = useState("All");
@@ -35,7 +59,6 @@ export default function InventoryPage() {
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  
   const [selectedItem, setSelectedItem] = useState<any>(null);
   
   // Data States
@@ -86,7 +109,7 @@ export default function InventoryPage() {
   const safeInventory = Array.isArray(inventory) ? inventory : [];
   const filteredItems =
     filter === "All"
-      ? safeInventory.filter((i:any) => i.status === 'ACTIVE' && i.quantity > 0) // Hide consumed items
+      ? safeInventory.filter((i:any) => i.status === 'ACTIVE' && i.quantity > 0)
       : safeInventory.filter((item: any) => item.category === filter && item.status === 'ACTIVE' && item.quantity > 0);
 
   const handleSelectFood = (foodItem: any) => {
@@ -124,7 +147,7 @@ export default function InventoryPage() {
 
       if (res.ok) {
         const savedItem = await res.json();
-        // Re-format for frontend
+        
         const formatted = {
           id: savedItem._id,
           name: savedItem.name,
@@ -146,7 +169,7 @@ export default function InventoryPage() {
     }
   };
 
-  // 1. Accidental Delete (Hard Delete)
+  // 1. Hard Delete (Accidental Entry)
   const handleAccidentalDelete = async () => {
     if (!selectedItem) return;
     try {
@@ -164,7 +187,7 @@ export default function InventoryPage() {
     setIsActionModalOpen(true);
   };
 
-  // 3. Submit Consumption/Wastage
+  // 3. Submit Consumption/Wastage (Partial Updates)
   const handleUpdateStock = async () => {
     if (!selectedItem) return;
 
@@ -179,11 +202,8 @@ export default function InventoryPage() {
       });
 
       if (res.ok) {
-        const updatedItem = await res.json();
-        
         setInventory((prev: any[]) => prev.map(item => {
             if (item.id === selectedItem.id) {
-                // Determine new status locally to update UI instantly
                 const newQty = item.quantity - Number(actionForm.quantity);
                 return {
                     ...item,
@@ -195,7 +215,7 @@ export default function InventoryPage() {
         }));
 
         setIsActionModalOpen(false);
-        setSelectedItem(null); // Close main modal
+        setSelectedItem(null); 
       }
     } catch (error) {
       console.error("Update failed", error);
@@ -205,6 +225,7 @@ export default function InventoryPage() {
   return (
     <PageWrapper>
       <div className="pb-24 lg:pb-8 pt-8 px-6 lg:px-12 h-full flex flex-col max-w-7xl mx-auto relative">
+        
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
           <div>
@@ -266,9 +287,13 @@ export default function InventoryPage() {
                         : "border-l-transparent"
                     }`}
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-[#F3F6F4] text-3xl flex items-center justify-center flex-shrink-0">
-                      {item.image || "📦"}
-                    </div>
+                    <ItemIcon 
+                        src={item.image} 
+                        alt={item.name} 
+                        className="w-16 h-16 rounded-2xl flex-shrink-0"
+                        size="text-3xl"
+                    />
+                    
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
                         <h3 className="font-bold text-[#0A3323] truncate pr-2 text-lg">
@@ -335,14 +360,13 @@ export default function InventoryPage() {
                 exit={{ y: "100%" }}
                 className="bg-[#F3F6F4] w-full max-w-lg rounded-t-3xl lg:rounded-3xl p-6 z-10 shadow-2xl max-h-[85vh] flex flex-col"
               >
-                {/* ... (Add Item Form Content from previous response remains mostly the same, maybe ensure numeric inputs allow decimals) ... */}
                 <div className="flex justify-between items-center mb-6">
                     {configuringFood ? (
                         <button onClick={() => setConfiguringFood(null)} className="p-2 hover:bg-gray-200 rounded-full">
                             <ArrowLeft size={20} />
                         </button>
                     ) : (
-                         <h3 className="text-2xl font-serif text-[#0A3323]">Add to Pantry</h3>
+                          <h3 className="text-2xl font-serif text-[#0A3323]">Add to Pantry</h3>
                     )}
                     <button onClick={() => setIsAddModalOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100">
                         <X size={20} />
@@ -352,7 +376,12 @@ export default function InventoryPage() {
                 {configuringFood ? (
                     <div className="space-y-6">
                         <div className="flex items-center gap-4">
-                            <span className="text-4xl">{configuringFood.image || "🍎"}</span>
+                             <ItemIcon 
+                                src={configuringFood.image} 
+                                alt={configuringFood.name} 
+                                className="w-16 h-16 rounded-2xl flex-shrink-0"
+                                size="text-4xl"
+                            />
                             <div>
                                 <h4 className="text-xl font-bold text-[#0A3323]">{configuringFood.name}</h4>
                                 <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-md">{configuringFood.category}</span>
@@ -366,7 +395,7 @@ export default function InventoryPage() {
                                     <Hash size={18} className="text-gray-400 mr-2"/>
                                     <input 
                                         type="number" 
-                                        step="0.01" // Allow decimals
+                                        step="0.01"
                                         value={addItemForm.quantity}
                                         onChange={(e) => setAddItemForm({...addItemForm, quantity: Number(e.target.value)})}
                                         className="w-full outline-none font-bold text-[#0A3323]"
@@ -385,7 +414,7 @@ export default function InventoryPage() {
                                 </div>
                             </div>
                         </div>
-                        {/* ... rest of Add form (expiry, cost) ... */}
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase text-gray-400">Expires In (Days)</label>
@@ -423,8 +452,7 @@ export default function InventoryPage() {
                         </button>
                     </div>
                 ) : (
-                     // ... Search List View (same as before) ...
-                     <>
+                      <>
                         <div className="relative mb-4">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
                             <input
@@ -448,7 +476,12 @@ export default function InventoryPage() {
                                     className="bg-white p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-[#D4FF47]/20 transition-colors group border border-transparent hover:border-[#D4FF47]"
                                 >
                                     <div className="flex items-center gap-3">
-                                    <span className="text-2xl">{food.image || "🍎"}</span>
+                                    <ItemIcon 
+                                        src={food.image} 
+                                        alt={food.name} 
+                                        className="w-10 h-10 rounded-lg flex-shrink-0"
+                                        size="text-2xl"
+                                    />
                                     <div>
                                         <p className="font-bold text-[#0A3323]">{food.name}</p>
                                         <p className="text-xs text-gray-500">Expires in ~{food.typicalExpiryDays} days</p>
@@ -479,14 +512,14 @@ export default function InventoryPage() {
                         initial={{scale: 0.9, opacity: 0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}}
                         className="bg-white w-full max-w-sm rounded-3xl p-6 z-[70] relative"
                     >
-                         <h3 className="text-xl font-bold text-[#0A3323] mb-4">
+                          <h3 className="text-xl font-bold text-[#0A3323] mb-4">
                             {actionForm.type === 'CONSUME' ? 'Consume Item' : 'Record Wastage'}
-                         </h3>
-                         <p className="text-sm text-gray-500 mb-6">
+                          </h3>
+                          <p className="text-sm text-gray-500 mb-6">
                             How much {selectedItem.name} did you {actionForm.type === 'CONSUME' ? 'use' : 'waste'}?
-                         </p>
+                          </p>
 
-                         <div className="flex items-center justify-between bg-[#F3F6F4] p-4 rounded-2xl mb-6">
+                          <div className="flex items-center justify-between bg-[#F3F6F4] p-4 rounded-2xl mb-6">
                              <input 
                                 type="number" 
                                 min="0" 
@@ -497,9 +530,9 @@ export default function InventoryPage() {
                                 className="bg-transparent text-3xl font-bold text-[#0A3323] w-24 outline-none"
                              />
                              <span className="font-bold text-gray-400">{selectedItem.unit}</span>
-                         </div>
+                          </div>
 
-                         <div className="flex gap-3">
+                          <div className="flex gap-3">
                             <button onClick={() => setIsActionModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
                             <button 
                                 onClick={handleUpdateStock}
@@ -509,14 +542,14 @@ export default function InventoryPage() {
                             >
                                 Confirm
                             </button>
-                         </div>
+                          </div>
                     </motion.div>
                 </div>
             )}
          </AnimatePresence>
 
 
-        {/* --- ITEM DETAILS MODAL (Updated) --- */}
+        {/* --- ITEM DETAILS MODAL --- */}
         <AnimatePresence>
           {selectedItem && !isActionModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -541,9 +574,12 @@ export default function InventoryPage() {
                 </button>
 
                 <div className="flex flex-col items-center text-center mb-6">
-                  <div className="w-24 h-24 bg-[#F3F6F4] rounded-full flex items-center justify-center text-5xl mb-4">
-                    {selectedItem.image || "📦"}
-                  </div>
+                  <ItemIcon 
+                        src={selectedItem.image} 
+                        alt={selectedItem.name} 
+                        className="w-24 h-24 rounded-full mb-4"
+                        size="text-5xl"
+                    />
                   <h3 className="text-3xl font-serif text-[#0A3323]">
                     {selectedItem.name}
                   </h3>
@@ -553,8 +589,7 @@ export default function InventoryPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
-                   {/* ... Expiry/Cost cards same as before ... */}
-                   <div className="p-4 bg-[#F3F6F4] rounded-2xl">
+                  <div className="p-4 bg-[#F3F6F4] rounded-2xl">
                     <div className="flex items-center gap-2 text-gray-500 mb-1 text-xs uppercase font-bold">
                       <Calendar size={14} /> Expiry
                     </div>

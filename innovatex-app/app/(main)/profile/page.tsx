@@ -1,6 +1,7 @@
 'use client';
+
 import { useState, useEffect } from 'react';
-import { LogOut, ChevronRight, Save, X, Edit2, Check } from 'lucide-react';
+import { LogOut, ChevronRight, Save, X, Edit2, Camera, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import PageWrapper from '@/components/PageWrapper';
 
@@ -17,18 +18,37 @@ const DIETARY_OPTIONS = [
   "Paleo"
 ];
 
+interface ProfileData {
+  name: string;
+  email: string;
+  image: string;
+  householdSize: number;
+  dietaryPreferences: string[];
+  budgetRange: string;
+  location: string;
+}
+
 export default function ProfilePage() {
   const { logout } = useApp();
+  
+  // State Management
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
     email: "",
+    image: "",
     householdSize: 1,
-    dietaryPreferences: [] as string[],
+    dietaryPreferences: [],
     budgetRange: "Medium",
     location: ""
   });
-  const [loading, setLoading] = useState(true);
+
+  // Environment Variables
+  const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   useEffect(() => {
     fetchProfile();
@@ -39,34 +59,85 @@ export default function ProfilePage() {
       const res = await fetch('/api/user/profile');
       if (res.ok) {
         const data = await res.json();
-        setProfileData({
+        if (!data.error) {
+          setProfileData({
             name: data.name || "",
             email: data.email || "",
+            image: data.image || "",
             householdSize: data.householdSize || 1,
             dietaryPreferences: data.dietaryPreferences || [],
             budgetRange: data.budgetRange || "Medium",
             location: data.location || ""
-        });
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to load profile", error);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   const handleSave = async () => {
     try {
-        const res = await fetch('/api/user/profile', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(profileData)
-        });
-        if (res.ok) {
-            setIsEditing(false);
-        }
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileData)
+      });
+      if (res.ok) {
+        setIsEditing(false);
+      }
     } catch (error) {
-        console.error("Failed to save", error);
+      console.error("Failed to save", error);
+    }
+  };
+
+  const handleProfileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      alert("Cloudinary configuration missing in .env file");
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
+    formData.append("cloud_name", CLOUD_NAME);
+
+    try {
+      // 1. Upload to Cloudinary
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error?.message || "Image upload failed");
+
+      const imageUrl = data.secure_url;
+
+      // 2. Update Database immediately with new image URL
+      const updateRes = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageUrl }) 
+      });
+
+      if (updateRes.ok) {
+        setProfileData((prev) => ({ ...prev, image: imageUrl }));
+        alert("Profile picture updated!");
+      } else {
+        throw new Error("Database update failed");
+      }
+    } catch (error) {
+      console.error("Upload failed", error);
+      alert("Failed to upload image");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -88,6 +159,8 @@ export default function ProfilePage() {
   return (
     <PageWrapper>
       <div className="pb-24 lg:pb-8 pt-8 px-6 lg:px-12 max-w-4xl mx-auto">
+        
+        {/* Header Section */}
         <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl lg:text-4xl font-serif text-[#0A3323]">My Profile</h2>
             {isEditing ? (
@@ -102,11 +175,30 @@ export default function ProfilePage() {
             )}
         </div>
         
-        {/* Profile Header Card */}
+        {/* Profile Header Card (Merged Image Upload + Info) */}
         <div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col md:flex-row items-center gap-8 mb-8 border border-gray-100">
-            <div className="w-24 h-24 rounded-full bg-[#D4FF47] text-[#0A3323] text-3xl font-bold flex items-center justify-center shadow-lg border-4 border-[#F3F6F4]">
-                {profileData.name.charAt(0)}
+            
+            {/* Image Upload Section */}
+            <div className="relative group w-32 h-32 flex-shrink-0">
+                <div className="w-full h-full rounded-full overflow-hidden border-4 border-[#F3F6F4] shadow-lg bg-gray-100 flex items-center justify-center">
+                    {profileData.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={profileData.image} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full bg-[#D4FF47] text-[#0A3323] text-4xl font-bold flex items-center justify-center">
+                            {profileData.name ? profileData.name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                    )}
+                </div>
+                
+                {/* Camera Overlay */}
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10">
+                    {uploading ? <Loader2 className="text-white animate-spin" size={32} /> : <Camera className="text-white" size={28} />}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleProfileUpload} disabled={uploading} />
+                </label>
             </div>
+
+            {/* User Details Section */}
             <div className="text-center md:text-left flex-1 w-full">
                 <h3 className="text-2xl font-bold text-[#0A3323]">{profileData.name}</h3>
                 <p className="text-gray-500">{profileData.email}</p>
@@ -126,6 +218,7 @@ export default function ProfilePage() {
             </div>
         </div>
 
+        {/* Preferences Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
            <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#0A3323]">Preferences</h3>
@@ -164,6 +257,7 @@ export default function ProfilePage() {
                   )}
               </div>
 
+               {/* Dietary Preferences */}
                <div className="bg-white p-5 rounded-2xl flex flex-col gap-3 border border-gray-100">
                   <span className="font-medium text-[#0A3323]">Dietary Preferences</span>
                   
@@ -202,9 +296,10 @@ export default function ProfilePage() {
               </div>
            </div>
 
+           {/* Account Links */}
            <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#0A3323]">Account</h3>
-              {['Notifications', 'Export Data', 'Privacy Policy'].map(item => (
+              {['Notifications', 'Export Data', 'Privacy Policy', 'Help Center'].map(item => (
                   <button key={item} className="w-full bg-white p-5 rounded-2xl flex justify-between items-center text-[#0A3323] hover:bg-gray-50 transition-colors group border border-gray-100">
                       {item}
                       <ChevronRight size={16} className="text-gray-300 group-hover:text-[#0A3323]" />
@@ -213,6 +308,7 @@ export default function ProfilePage() {
            </div>
         </div>
 
+        {/* Logout Button */}
         <button 
           onClick={logout}
           className="w-full mt-12 p-4 rounded-2xl border-2 border-[#FF6B6B] text-[#FF6B6B] font-bold flex items-center justify-center gap-2 hover:bg-[#FF6B6B] hover:text-white transition-colors max-w-md mx-auto lg:mx-0"

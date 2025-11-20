@@ -22,15 +22,20 @@ export async function PUT(request: Request) {
   await dbConnect();
   const body = await request.json();
   
+ 
+  const updateFields: any = {};
+
+  if (body.householdSize !== undefined) updateFields.householdSize = body.householdSize;
+  if (body.dietaryPreferences !== undefined) updateFields.dietaryPreferences = body.dietaryPreferences;
+  if (body.budgetRange !== undefined) updateFields.budgetRange = body.budgetRange;
+  if (body.location !== undefined) updateFields.location = body.location;
+
+  if (body.image !== undefined) updateFields.image = body.image;
+
   const updatedUser = await User.findByIdAndUpdate(
     (session.user as any).id,
     {
-      $set: {
-        householdSize: body.householdSize,
-        dietaryPreferences: body.dietaryPreferences,
-        budgetRange: body.budgetRange,
-        location: body.location,
-      }
+      $set: updateFields
     },
     { new: true }
   ).select("-password");
