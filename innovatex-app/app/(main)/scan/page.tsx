@@ -1,3 +1,5 @@
+// testcase-titans/bubt-hackathon/TestCase-Titans-BUBT-Hackathon-7f2fc8260090a6a6c6812ca1c49b4545799e53a2/innovatex-app/app/(main)/scan/page.tsx
+
 'use client';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -139,10 +141,17 @@ export default function ScanPage() {
     alert("Please provide an item name and ensure an image is uploaded.");
     return;
   }
-  if (newItemFormData.cost < 0) {
-    alert("Cost cannot be negative.");
+
+  // UPDATED VALIDATION: Cost and Quantity (Unit) must be > 0
+  if (newItemFormData.cost <= 0) {
+    alert("Cost must be greater than 0.");
     return;
   }
+  if (newItemFormData.quantity <= 0) {
+    alert("Quantity must be greater than 0.");
+    return;
+  }
+
   if (newItemFormData.category.length === 0) {
       alert("Please select at least one category.");
       return;
