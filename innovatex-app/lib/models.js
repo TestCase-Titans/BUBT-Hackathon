@@ -18,7 +18,10 @@ const InventorySchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     name: { type: String, required: true },
-    category: { type: String, required: true },
+    
+    // FIX: Change from String to [String]
+    category: { type: [String], required: true }, 
+    
     quantity: { type: Number, required: true },
     unit: { type: String, default: "pcs" },
     expirationDate: Date,
@@ -31,7 +34,6 @@ const InventorySchema = new Schema(
     },
 
     imageUrl: String,
-
     aiTags: [String],
     source: { type: String, enum: ["MANUAL", "SCAN"], default: "MANUAL" },
   },
@@ -43,9 +45,11 @@ const ActionLogSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     inventoryId: { type: Schema.Types.ObjectId, ref: "Inventory" },
     itemName: String,
-    category: String, 
-    cost: Number,
     
+    // FIX: Change from String to [String]
+    category: [String], 
+    
+    cost: Number,
     actionType: { type: String, enum: ["ADD", "CONSUME", "WASTE", "DELETE"], required: true },
     quantityChanged: Number,
     unit: String,
@@ -56,7 +60,8 @@ const ActionLogSchema = new Schema(
 
 const FoodItemSchema = new Schema({
   name: String,
-  category: String,
+  // FIX: Change from String to [String]
+  category: [String],
   typicalExpiryDays: Number,
   costPerUnit: Number,
   unit: String,
@@ -67,12 +72,12 @@ const ResourceSchema = new Schema({
   title: { type: String, required: true },
   description: String,
   url: String,
-  category: { type: String, required: true },
+  category: { type: String, required: true }, // Resources can keep single category or change if needed
   type: { type: String, enum: ["Article", "Video", "Tip"], required: true },
 });
 
 export const User = models.User || model("User", UserSchema);
 export const Inventory = models.Inventory || model("Inventory", InventorySchema);
-export const ActionLog = models.ActionLog || model("ActionLog", ActionLogSchema); // Export the new model
+export const ActionLog = models.ActionLog || model("ActionLog", ActionLogSchema);
 export const Resource = models.Resource || model("Resource", ResourceSchema);
 export const FoodItem = models.FoodItem || model("FoodItem", FoodItemSchema);

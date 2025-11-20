@@ -1,14 +1,40 @@
 'use client';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Check, Loader2, Save, UploadCloud, X, Hash, Calendar, Coins } from 'lucide-react';
+import { Camera, Check, Loader2, Save, UploadCloud, X, Hash, Calendar, Coins, Tag } from 'lucide-react';
 import PageWrapper from '@/components/PageWrapper';
 import { useRouter } from 'next/navigation';
-import { useApp } from '@/context/AppContext'; // IMPORT ADDED
+import { useApp } from '@/context/AppContext';
+
+// Detailed Categories List
+const CATEGORIES = [
+  "Meat Protein",
+  "Fish Protein",
+  "Dairy Protein",
+  "Vegetable Protein",
+  "Vegetable",
+  "Fruit",
+  "Grain",
+  "Dairy",
+  "Spices",
+  "Fats",
+  "Snack",
+  "General"
+];
+
+// Define the interface to prevent 'never[]' errors
+interface ScanFormData {
+  name: string;
+  category: string[];
+  quantity: number;
+  unit: string;
+  expiryDays: number;
+  cost: number;
+}
 
 export default function ScanPage() {
   const router = useRouter();
-  const { setInventory } = useApp(); // GET SETTER FROM CONTEXT
+  const { setInventory } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // UI States
@@ -17,9 +43,11 @@ export default function ScanPage() {
   
   // Data States
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [newItemFormData, setNewItemFormData] = useState({
+  
+  // FIX: Explicitly type the state here
+  const [newItemFormData, setNewItemFormData] = useState<ScanFormData>({
     name: '',
-    category: 'Vegetable',
+    category: ['Vegetable'], // Default value as array
     quantity: 1,
     unit: 'pcs',
     expiryDays: 7,
@@ -57,7 +85,6 @@ export default function ScanPage() {
     data.append("cloud_name", CLOUD_NAME);
 
     try {
-      // Artificial delay to let the cool animation play for at least 2 seconds
       const [uploadResult] = await Promise.all([
         fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
             method: "POST",
@@ -68,12 +95,11 @@ export default function ScanPage() {
       
       if (uploadResult.secure_url) {
         setUploadedImageUrl(uploadResult.secure_url);
-        setScanned(true); // Show success state
+        setScanned(true);
         
-        // Reset form data for a new item
         setNewItemFormData({
             name: '',
-            category: 'Vegetable',
+            category: ['Vegetable'],
             quantity: 1,
             unit: 'pcs',
             expiryDays: 7,
@@ -90,20 +116,36 @@ export default function ScanPage() {
       setScanned(false);
     } finally {
       setScanning(false);
-      // Reset file input
       if(e.target) e.target.value = '';
     }
   };
 
-  // 3. Save to Inventory (FIXED THIS FUNCTION)
+  // Helper to toggle categories
+  const toggleCategory = (cat: string) => {
+    setNewItemFormData(prev => {
+        const exists = prev.category.includes(cat);
+        return {
+            ...prev,
+            category: exists 
+                ? prev.category.filter(c => c !== cat) // Remove
+                : [...prev.category, cat] // Add
+        };
+    });
+  };
+
+  // 3. Save to Inventory
   const handleSaveToInventory = async () => {
   if (!newItemFormData.name || !uploadedImageUrl) {
     alert("Please provide an item name and ensure an image is uploaded.");
     return;
   }
-  if (newItemFormData.cost <= 0) {
-    alert("Cost must be greater than 0.");
+  if (newItemFormData.cost < 0) {
+    alert("Cost cannot be negative.");
     return;
+  }
+  if (newItemFormData.category.length === 0) {
+      alert("Please select at least one category.");
+      return;
   }
     
     const expirationDate = new Date();
@@ -127,7 +169,7 @@ export default function ScanPage() {
       if (res.ok) {
         const savedItem = await res.json();
 
-        // --- FIX: MANUALLY UPDATE CONTEXT STATE ---
+        // Update Context
         const formattedItem = {
             id: savedItem._id,
             name: savedItem.name,
@@ -141,10 +183,8 @@ export default function ScanPage() {
             status: savedItem.status
         };
 
-        // Safely add the new item to the existing list
         setInventory((prev: any) => [...(Array.isArray(prev) ? prev : []), formattedItem]);
         
-        // Redirect immediately
         router.push('/inventory'); 
       } else {
           alert("Failed to save item to inventory. Please try again.");
@@ -161,7 +201,7 @@ export default function ScanPage() {
       setUploadedImageUrl(null);
       setNewItemFormData({
           name: '',
-          category: 'Vegetable',
+          category: ['Vegetable'],
           quantity: 1,
           unit: 'pcs',
           expiryDays: 7,
@@ -172,13 +212,11 @@ export default function ScanPage() {
   return (
     <PageWrapper>
       <div className="h-full pb-24 pt-8 px-6 lg:px-12 flex flex-col max-w-5xl mx-auto">
-        {/* Page Header */}
         <div className="text-center lg:text-left mb-8">
           <h2 className="text-3xl lg:text-4xl font-serif text-[#0A3323] mb-2">Smart Scan</h2>
           <p className="text-gray-500">Upload a receipt or snap a photo of your grocery haul.</p>
         </div>
 
-        {/* Hidden File Input */}
         <input 
             type="file" 
             ref={fileInputRef} 
@@ -187,7 +225,6 @@ export default function ScanPage() {
             onChange={handleFileChange}
         />
 
-        {/* Main Scan Box (Teammate's Design) */}
         <div className="flex-1 flex flex-col items-center justify-center lg:bg-white lg:rounded-3xl lg:p-12 lg:border lg:border-dashed lg:border-gray-200 transition-all">
            <motion.div 
              onClick={handleBoxClick}
@@ -196,7 +233,6 @@ export default function ScanPage() {
                ${scanned ? 'border-[#D4FF47] bg-[#0A3323]' : scanning ? 'border-[#0A3323] bg-gray-100' : 'border-gray-300 bg-white lg:bg-gray-50'}
              `}
            >
-             {/* State 1: Idle (Tap to Scan) */}
              {!scanning && !scanned && (
                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                      <div className="w-20 h-20 rounded-full bg-[#F3F6F4] flex items-center justify-center mb-4 shadow-sm">
@@ -207,7 +243,6 @@ export default function ScanPage() {
                  </div>
              )}
 
-             {/* State 2: Scanning Animation (Teammate's Beam) */}
              {scanning && (
                  <>
                     <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
@@ -227,7 +262,6 @@ export default function ScanPage() {
                  </>
              )}
 
-             {/* State 3: Scanned Success (Teammate's UI) */}
              {scanned && (
                  <motion.div 
                    initial={{ opacity: 0 }}
@@ -250,7 +284,6 @@ export default function ScanPage() {
            </motion.div>
         </div>
 
-        {/* --- Scanned Item Form --- */}
         <AnimatePresence>
             {scanned && uploadedImageUrl && (
                 <motion.div
@@ -260,7 +293,6 @@ export default function ScanPage() {
                     transition={{ duration: 0.3 }}
                     className="mt-8 bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-gray-100 flex flex-col lg:flex-row gap-6"
                 >
-                    {/* Left: Image Preview */}
                     <div className="w-full lg:w-1/2 flex-shrink-0 relative aspect-square lg:aspect-[4/5] rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 shadow-inner">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={uploadedImageUrl} alt="Scanned Item" className="w-full h-full object-cover" />
@@ -269,7 +301,6 @@ export default function ScanPage() {
                         </div>
                     </div>
 
-                    {/* Right: Item Details Form */}
                     <div className="flex-1 space-y-5">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-2xl font-bold text-[#0A3323] flex items-center gap-2">
@@ -280,9 +311,7 @@ export default function ScanPage() {
                             </button>
                         </div>
 
-                        {/* Form Fields */}
                         <div className="space-y-4">
-                            {/* Item Name */}
                             <div>
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Item Name</label>
                                 <input 
@@ -295,39 +324,50 @@ export default function ScanPage() {
                                 />
                             </div>
 
-                            {/* Category & Quantity */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Category</label>
-                                    <select 
-                                        className="w-full p-3 bg-[#F3F6F4] rounded-xl mt-1 outline-none text-[#0A3323] font-medium focus:ring-2 focus:ring-[#D4FF47]"
-                                        value={newItemFormData.category}
-                                        onChange={(e) => setNewItemFormData({...newItemFormData, category: e.target.value})}
-                                    >
-                                        {["Vegetable", "Fruit", "Dairy", "Grain", "Protein", "Meat", "Snack", "Beverage", "Canned", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Qty</label>
-                                    <div className="flex gap-1">
-                                        <input 
-                                            type="number" 
-                                            className="w-2/3 p-3 bg-[#F3F6F4] rounded-xl mt-1 outline-none text-[#0A3323] font-medium focus:ring-2 focus:ring-[#D4FF47]" 
-                                            value={newItemFormData.quantity}
-                                            onChange={(e) => setNewItemFormData({...newItemFormData, quantity: Number(e.target.value)})}
-                                        />
-                                        <input 
-                                            type="text" 
-                                            className="w-1/3 p-3 bg-[#F3F6F4] rounded-xl mt-1 outline-none text-[#0A3323] font-medium placeholder:text-gray-400 focus:ring-2 focus:ring-[#D4FF47]" 
-                                            value={newItemFormData.unit}
-                                            placeholder="unit"
-                                            onChange={(e) => setNewItemFormData({...newItemFormData, unit: e.target.value})}
-                                        />
-                                    </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1 mb-2">
+                                    <Tag size={12} /> Categories
+                                </label>
+                                <div className="flex flex-wrap gap-2 p-3 bg-[#F3F6F4] rounded-xl">
+                                    {CATEGORIES.map(cat => {
+                                        const isSelected = newItemFormData.category.includes(cat);
+                                        return (
+                                            <button
+                                                key={cat}
+                                                type="button"
+                                                onClick={() => toggleCategory(cat)}
+                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
+                                                    isSelected 
+                                                    ? 'bg-[#0A3323] text-[#D4FF47] border-[#0A3323] shadow-sm' 
+                                                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                                                }`}
+                                            >
+                                                {cat}
+                                            </button>
+                                        )
+                                    })}
                                 </div>
                             </div>
 
-                            {/* Expiry & Cost */}
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Qty & Unit</label>
+                                <div className="flex gap-2 mt-1">
+                                    <input 
+                                        type="number" 
+                                        className="w-2/3 p-3 bg-[#F3F6F4] rounded-xl outline-none text-[#0A3323] font-medium focus:ring-2 focus:ring-[#D4FF47]" 
+                                        value={newItemFormData.quantity}
+                                        onChange={(e) => setNewItemFormData({...newItemFormData, quantity: Number(e.target.value)})}
+                                    />
+                                    <input 
+                                        type="text" 
+                                        className="w-1/3 p-3 bg-[#F3F6F4] rounded-xl outline-none text-[#0A3323] font-medium placeholder:text-gray-400 focus:ring-2 focus:ring-[#D4FF47]" 
+                                        value={newItemFormData.unit}
+                                        placeholder="unit"
+                                        onChange={(e) => setNewItemFormData({...newItemFormData, unit: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Expires In (Days)</label>
@@ -357,7 +397,6 @@ export default function ScanPage() {
                             </div>
                         </div>
 
-                        {/* Save Button */}
                         <button 
                             onClick={handleSaveToInventory}
                             className="w-full bg-[#0A3323] text-[#D4FF47] py-4 rounded-xl font-bold mt-4 flex items-center justify-center gap-2 hover:bg-[#0F4D34] transition-colors shadow-lg active:scale-95"

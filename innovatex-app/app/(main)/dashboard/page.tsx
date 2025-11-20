@@ -13,6 +13,7 @@ import {
   TrendingDown,
   TrendingUp,
   Activity,
+  MapPin,
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
@@ -31,9 +32,12 @@ export default function DashboardPage() {
     inventoryCount: 0,
     moneyWasted: 0,
     pantryValue: 0,
-    recentLogs: [] as any[], // Added type for logs
+    recentLogs: [] as any[],
   });
   const [loading, setLoading] = useState(true);
+  
+  // New state for dynamic location
+  const [locationName, setLocationName] = useState("Locating...");
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -51,6 +55,35 @@ export default function DashboardPage() {
     };
 
     fetchStats();
+  }, []);
+
+  // Fetch User Location
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          // Use OpenStreetMap Nominatim (Free, No Key Required)
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const city = data.address.city || data.address.town || data.address.village || data.address.state;
+            const country = data.address.country;
+            setLocationName(`${city}, ${country}`);
+          }
+        } catch (error) {
+          console.error("Failed to fetch location name", error);
+          setLocationName("Location Unavailable");
+        }
+      }, (error) => {
+        console.error("Geolocation error", error);
+        setLocationName("Location Access Denied");
+      });
+    } else {
+      setLocationName("Geolocation Not Supported");
+    }
   }, []);
 
   const expiringItems = safeInventory.filter((i: any) => i.expiryDays < 3);
@@ -82,8 +115,9 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="hidden lg:flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-sm">
+            <MapPin size={16} className="text-gray-400" />
             <span className="text-sm font-bold text-[#0A3323]">
-              Dhaka, Bangladesh
+              {locationName}
             </span>
             <Sun size={18} className="text-yellow-500" />
           </div>
@@ -234,7 +268,7 @@ export default function DashboardPage() {
             {/* Quick Actions */}
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
               {/* Daily Insight */}
-              <div className="bg-[#E8F5E9] p-6 rounded-3xl border border-[#0A3323]/5">
+              <div className="bg-[#E8F5E9] p-6 rounded-3xl border border-[#0A3323]/5 lg:col-span-1 col-span-2">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-white rounded-full shadow-sm">
                     <Wind size={20} className="text-[#0A3323]" />
