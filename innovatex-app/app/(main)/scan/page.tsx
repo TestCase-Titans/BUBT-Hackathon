@@ -47,7 +47,7 @@ export default function ScanPage() {
   // FIX: Explicitly type the state here
   const [newItemFormData, setNewItemFormData] = useState<ScanFormData>({
     name: '',
-    category: ['Vegetable'], // Default value as array
+    category: [], // Default value as array
     quantity: 1,
     unit: 'pcs',
     expiryDays: 7,
@@ -99,7 +99,7 @@ export default function ScanPage() {
         
         setNewItemFormData({
             name: '',
-            category: ['Vegetable'],
+            category: [],
             quantity: 1,
             unit: 'pcs',
             expiryDays: 7,
@@ -201,7 +201,7 @@ export default function ScanPage() {
       setUploadedImageUrl(null);
       setNewItemFormData({
           name: '',
-          category: ['Vegetable'],
+          category: [],
           quantity: 1,
           unit: 'pcs',
           expiryDays: 7,
