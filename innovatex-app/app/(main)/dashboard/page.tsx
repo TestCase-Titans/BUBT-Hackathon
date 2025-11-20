@@ -18,11 +18,18 @@ import {
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
 import PageWrapper from "@/components/PageWrapper";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useNotification } from "@/context/NotificationContext"; // Imported Hook
 
 export default function DashboardPage() {
   const { inventory, user } = useApp();
+  const { notify } = useNotification(); // Access notification function
+  
   const safeInventory = Array.isArray(inventory) ? inventory : [];
+
+  // Refs to prevent duplicate notifications in Strict Mode
+  const hasWelcomed = useRef(false);
+  const hasWarned = useRef(false);
 
   const [stats, setStats] = useState({
     streak: 0,
@@ -56,6 +63,28 @@ export default function DashboardPage() {
 
     fetchStats();
   }, []);
+
+  // --- NEW: Welcome Notification Logic ---
+  useEffect(() => {
+    if (user && !hasWelcomed.current) {
+      const firstName = user.name?.split(" ")[0] || "Chef";
+      notify(`Welcome back, ${firstName}! Let's save some food.`, "success");
+      hasWelcomed.current = true;
+    }
+  }, [user, notify]);
+
+  // --- NEW: Expiry Warning Notification Logic ---
+  useEffect(() => {
+    const expiringItemsCount = safeInventory.filter((i: any) => i.expiryDays < 3).length;
+    
+    if (expiringItemsCount > 0 && !hasWarned.current) {
+      // Slight delay so it stacks nicely after the welcome message
+      setTimeout(() => {
+        notify(`Alert: You have ${expiringItemsCount} items expiring soon!`, "warning");
+      }, 1500);
+      hasWarned.current = true;
+    }
+  }, [safeInventory, notify]);
 
   // Fetch User Location
   useEffect(() => {
@@ -330,7 +359,7 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {/* Recent Activity (New Rule-Based Tracking Feature) */}
+            {/* Recent Activity */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
               <div className="flex items-center gap-3 mb-4">
                 <Activity size={18} className="text-[#0A3323]" />

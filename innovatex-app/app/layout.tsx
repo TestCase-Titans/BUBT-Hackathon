@@ -1,11 +1,13 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import { AppProvider } from "@/context/AppContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 export const metadata = {
   title: "Eco-Loop",
   description: "Sustainable Food Management System",
 };
+
 export default function RootLayout({
   children,
 }: {
@@ -14,7 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#F3F6F4] text-[#0A3323] font-sans selection:bg-[#D4FF47] selection:text-[#0A3323]">
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
+        </AppProvider>
       </body>
     </html>
   );
