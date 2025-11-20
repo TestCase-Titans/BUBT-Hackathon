@@ -6,25 +6,53 @@ import { Leaf, AlertCircle } from 'lucide-react';
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
+const DIETARY_OPTIONS = [
+  "Vegetarian",
+  "Vegan",
+  "Pescatarian",
+  "Halal",
+  "Kosher",
+  "Gluten-Free",
+  "Dairy-Free",
+  "Nut-Free",
+  "Keto",
+  "Paleo"
+];
+
 export default function LoginPage() {
   const router = useRouter();
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Updated state type for dietaryPreferences to be string[]
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     householdSize: 1,
     location: "",
-    dietaryPreferences: "None",
+    dietaryPreferences: [] as string[], 
     budgetRange: "Medium"
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) setError(""); 
+  };
+
+  // New helper for multi-select
+  const togglePreference = (pref: string) => {
+    setFormData(prev => {
+      const exists = prev.dietaryPreferences.includes(pref);
+      let newPrefs;
+      if (exists) {
+        newPrefs = prev.dietaryPreferences.filter(p => p !== pref);
+      } else {
+        newPrefs = [...prev.dietaryPreferences, pref];
+      }
+      return { ...prev, dietaryPreferences: newPrefs };
+    });
   };
 
   const validateForm = () => {
@@ -74,7 +102,7 @@ export default function LoginPage() {
             householdSize: formData.householdSize,
             location: formData.location,
             budgetRange: formData.budgetRange,
-            dietaryPreferences: [formData.dietaryPreferences]
+            dietaryPreferences: formData.dietaryPreferences // Now sending array directly
           })
         });
 
@@ -203,21 +231,28 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                <div className="space-y-1">
+                {/* REPLACED: Multi-Select Dietary Preference */}
+                <div className="space-y-2">
                     <label className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">Dietary Preference</label>
-                    <select
-                        name="dietaryPreferences"
-                        value={formData.dietaryPreferences}
-                        onChange={handleChange}
-                        className="w-full p-4 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-[#0A3323]/20 outline-none transition-all"
-                    >
-                        <option value="None">None</option>
-                        <option value="Vegetarian">Vegetarian</option>
-                        <option value="Vegan">Vegan</option>
-                        <option value="Halal">Halal</option>
-                        <option value="Gluten-Free">Gluten-Free</option>
-                        <option value="Keto">Keto</option>
-                    </select>
+                    <div className="flex flex-wrap gap-2 p-4 bg-white rounded-xl shadow-sm">
+                      {DIETARY_OPTIONS.map(option => {
+                        const isSelected = formData.dietaryPreferences.includes(option);
+                        return (
+                          <button
+                            key={option}
+                            type="button" // Prevent form submit
+                            onClick={() => togglePreference(option)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                              isSelected 
+                                ? 'bg-[#0A3323] text-[#D4FF47] border-[#0A3323]' 
+                                : 'bg-gray-100 text-gray-500 border-transparent hover:bg-gray-200'
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        )
+                      })}
+                    </div>
                 </div>
 
                 <div className="space-y-1">

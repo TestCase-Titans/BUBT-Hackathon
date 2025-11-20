@@ -13,7 +13,6 @@ const UserSchema = new Schema(
   { timestamps: true }
 );
 
-// The User's Personal Pantry Item
 const InventorySchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -38,7 +37,22 @@ const InventorySchema = new Schema(
   { timestamps: true }
 );
 
-// The Master Database of Foods (Seeded Data)
+const ActionLogSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    inventoryId: { type: Schema.Types.ObjectId, ref: "Inventory" },
+    itemName: String,
+    category: String, 
+    cost: Number,
+    
+    actionType: { type: String, enum: ["ADD", "CONSUME", "WASTE", "DELETE"], required: true },
+    quantityChanged: Number,
+    unit: String,
+    reason: String,
+  },
+  { timestamps: true }
+);
+
 const FoodItemSchema = new Schema({
   name: String,
   category: String,
@@ -57,7 +71,7 @@ const ResourceSchema = new Schema({
 });
 
 export const User = models.User || model("User", UserSchema);
-export const Inventory =
-  models.Inventory || model("Inventory", InventorySchema);
+export const Inventory = models.Inventory || model("Inventory", InventorySchema);
+export const ActionLog = models.ActionLog || model("ActionLog", ActionLogSchema); // Export the new model
 export const Resource = models.Resource || model("Resource", ResourceSchema);
 export const FoodItem = models.FoodItem || model("FoodItem", FoodItemSchema);

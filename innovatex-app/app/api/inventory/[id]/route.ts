@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import { Inventory } from "@/lib/models";
+import { Inventory, ActionLog } from "@/lib/models";
 import { auth } from "@/lib/auth";
 
 export async function DELETE(
@@ -12,11 +12,25 @@ export async function DELETE(
 
   await dbConnect();
   const { id } = await params;
+  const userId = (session.user as any).id;
 
-  await Inventory.findOneAndDelete({ 
-    _id: id, 
-    userId: (session.user as any).id 
-  });
+  const item = await Inventory.findOne({ _id: id, userId });
+
+  if (item) {
+    await ActionLog.create({
+      userId,
+      inventoryId: id,
+      itemName: item.name,
+      category: item.category,
+      cost: (item.costPerUnit || 0) * item.quantity, // Log value of deleted item
+      actionType: "DELETE",
+      quantityChanged: item.quantity,
+      unit: item.unit,
+      reason: "Accidental/Manual Delete"
+    });
+
+    await Inventory.deleteOne({ _id: id });
+  }
 
   return NextResponse.json({ message: "Item deleted" });
 }
@@ -30,13 +44,58 @@ export async function PATCH(
 
   await dbConnect();
   const { id } = await params;
+  const userId = (session.user as any).id;
   const body = await request.json();
 
+  const currentItem = await Inventory.findOne({ _id: id, userId });
+  if (!currentItem) return NextResponse.json({ error: "Item not found" }, { status: 404 });
+
+  let updateData: any = {};
+  let logActionType = "UPDATE";
+  let logQuantity = 0;
+
+  // Handle Consume/Waste Actions
+  if (body.action === "CONSUME" || body.action === "WASTE") {
+    const amountToRemove = Number(body.quantity) || 0;
+    const newQuantity = currentItem.quantity - amountToRemove;
+
+    logActionType = body.action;
+    logQuantity = amountToRemove;
+
+    if (newQuantity <= 0) {
+      updateData = { 
+        quantity: 0, 
+        status: body.action === "WASTE" ? "WASTED" : "CONSUMED" 
+      };
+    } else {
+      updateData = { quantity: newQuantity };
+    }
+  } else {
+    updateData = { $set: body };
+  }
+
   const updatedItem = await Inventory.findOneAndUpdate(
-    { _id: id, userId: (session.user as any).id },
-    { $set: body },
+    { _id: id, userId },
+    updateData.quantity !== undefined ? { $set: updateData } : updateData,
     { new: true }
   );
+
+  if (logQuantity > 0) {
+    await ActionLog.create({
+      userId,
+      inventoryId: id,
+      itemName: currentItem.name,
+      
+      // Store snapshot of category and calculated cost
+      category: currentItem.category,
+      cost: (currentItem.costPerUnit || 0) * logQuantity,
+
+      actionType: logActionType,
+      quantityChanged: logQuantity,
+      unit: currentItem.unit,
+      reason: body.reason || "Manual Update"
+    });
+  }
 
   return NextResponse.json(updatedItem);
 }

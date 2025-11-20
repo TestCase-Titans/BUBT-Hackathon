@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import { Inventory } from "@/lib/models";
+import { Inventory, ActionLog } from "@/lib/models";
 import { auth } from "@/lib/auth";
 
 export async function GET() {
@@ -27,12 +27,9 @@ export async function GET() {
         category: item.category,
         quantity: item.quantity,
         unit: item.unit,
-        // Ensure we return the image from DB, or fallback
         image: item.imageUrl || "📦", 
-        // Crucial: Return cost so value calculation works
         costPerUnit: item.costPerUnit, 
         expiryDays: expiryDays,
-        // Return the raw date for editing/logic if needed
         expirationDate: item.expirationDate, 
         status: item.status,
       };
@@ -50,30 +47,39 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await auth();
-  
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session || !session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await dbConnect();
   
   try {
     const body = await request.json();
+    const userId = (session.user as any).id;
     
-    // Explicitly map fields to ensure Schema match
-    // This handles if frontend sends 'image' but DB needs 'imageUrl'
     const newItem = await Inventory.create({
-      userId: (session.user as any).id,
+      userId: userId,
       name: body.name,
       category: body.category,
       quantity: body.quantity,
       unit: body.unit,
       expirationDate: body.expirationDate,
       costPerUnit: body.costPerUnit,
-      // Map 'image' input to 'imageUrl' schema field if needed
       imageUrl: body.imageUrl || body.image, 
       status: 'ACTIVE',
       source: 'MANUAL' 
+    });
+
+    await ActionLog.create({
+      userId: userId,
+      inventoryId: newItem._id,
+      itemName: newItem.name,
+      
+      category: newItem.category,
+      cost: (newItem.costPerUnit || 0) * newItem.quantity,
+      
+      actionType: "ADD",
+      quantityChanged: newItem.quantity,
+      unit: newItem.unit,
+      reason: "Initial Add"
     });
     
     return NextResponse.json(newItem);

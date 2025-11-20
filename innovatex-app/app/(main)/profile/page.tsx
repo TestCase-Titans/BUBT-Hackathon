@@ -1,11 +1,24 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { LogOut, ChevronRight, Save, X, Edit2 } from 'lucide-react';
+import { LogOut, ChevronRight, Save, X, Edit2, Check } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import PageWrapper from '@/components/PageWrapper';
 
+const DIETARY_OPTIONS = [
+  "Vegetarian",
+  "Vegan",
+  "Pescatarian",
+  "Halal",
+  "Kosher",
+  "Gluten-Free",
+  "Dairy-Free",
+  "Nut-Free",
+  "Keto",
+  "Paleo"
+];
+
 export default function ProfilePage() {
-  const { logout, user } = useApp();
+  const { logout } = useApp();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: "",
@@ -51,11 +64,23 @@ export default function ProfilePage() {
         });
         if (res.ok) {
             setIsEditing(false);
-            // Optional: Show toast success
         }
     } catch (error) {
         console.error("Failed to save", error);
     }
+  };
+
+  const togglePreference = (pref: string) => {
+    setProfileData(prev => {
+      const exists = prev.dietaryPreferences.includes(pref);
+      let newPrefs;
+      if (exists) {
+        newPrefs = prev.dietaryPreferences.filter(p => p !== pref);
+      } else {
+        newPrefs = [...prev.dietaryPreferences, pref];
+      }
+      return { ...prev, dietaryPreferences: newPrefs };
+    });
   };
 
   if (loading) return <div className="p-12 text-center text-gray-500">Loading Profile...</div>;
@@ -77,6 +102,7 @@ export default function ProfilePage() {
             )}
         </div>
         
+        {/* Profile Header Card */}
         <div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col md:flex-row items-center gap-8 mb-8 border border-gray-100">
             <div className="w-24 h-24 rounded-full bg-[#D4FF47] text-[#0A3323] text-3xl font-bold flex items-center justify-center shadow-lg border-4 border-[#F3F6F4]">
                 {profileData.name.charAt(0)}
@@ -138,23 +164,40 @@ export default function ProfilePage() {
                   )}
               </div>
 
-               {/* Dietary Prefs */}
-               <div className="bg-white p-5 rounded-2xl flex flex-col gap-2 border border-gray-100">
-                  <span className="font-medium text-[#0A3323]">Dietary Preference</span>
+               <div className="bg-white p-5 rounded-2xl flex flex-col gap-3 border border-gray-100">
+                  <span className="font-medium text-[#0A3323]">Dietary Preferences</span>
+                  
                   {isEditing ? (
-                      <select 
-                        value={profileData.dietaryPreferences[0] || "None"}
-                        onChange={(e) => setProfileData({...profileData, dietaryPreferences: [e.target.value]})}
-                        className="p-2 bg-[#F3F6F4] rounded-lg font-bold text-sm w-full mt-2"
-                      >
-                        <option value="None">None</option>
-                        <option value="Vegetarian">Vegetarian</option>
-                        <option value="Vegan">Vegan</option>
-                        <option value="Halal">Halal</option>
-                        <option value="Keto">Keto</option>
-                      </select>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {DIETARY_OPTIONS.map(option => {
+                        const isSelected = profileData.dietaryPreferences.includes(option);
+                        return (
+                          <button
+                            key={option}
+                            onClick={() => togglePreference(option)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                              isSelected 
+                                ? 'bg-[#0A3323] text-[#D4FF47] border-[#0A3323]' 
+                                : 'bg-white text-gray-500 border-gray-200 hover:border-[#0A3323]'
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        )
+                      })}
+                    </div>
                   ) : (
-                      <span className="font-bold text-gray-500 mt-1">{profileData.dietaryPreferences[0] || "None"}</span>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {profileData.dietaryPreferences.length > 0 ? (
+                        profileData.dietaryPreferences.map(pref => (
+                          <span key={pref} className="px-3 py-1 bg-[#F3F6F4] text-[#0A3323] text-xs font-bold rounded-full border border-gray-200">
+                            {pref}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">No preferences set</span>
+                      )}
+                    </div>
                   )}
               </div>
            </div>
