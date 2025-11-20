@@ -1,6 +1,8 @@
+// testcase-titans/bubt-hackathon/TestCase-Titans-BUBT-Hackathon-7f2fc8260090a6a6c6812ca1c49b4545799e53a2/innovatex-app/app/(main)/inventory/page.tsx
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Trash2,
@@ -8,25 +10,32 @@ import {
   Search,
   X,
   Calendar,
-  CheckCircle,
-  ArrowLeft,
-  Hash,
   Coins,
   Utensils,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft,
+  Hash
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
 import PageWrapper from "@/components/PageWrapper";
 
+// Updated Categories to match Scan Page + Canned/All
 const CATEGORIES = [
   "All",
-  "Dairy",
+  "Meat Protein",
+  "Fish Protein",
+  "Dairy Protein",
+  "Vegetable Protein",
   "Vegetable",
   "Fruit",
   "Grain",
-  "Protein",
+  "Dairy",
+  "Spices",
+  "Fats",
+  "Snack",
   "Canned",
+  "General"
 ];
 
 // Helper component to render image or emoji safely
@@ -81,6 +90,27 @@ export default function InventoryPage() {
     type: "CONSUME" // or WASTE
   });
 
+  // Ref for horizontal scrolling
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Horizontal Scroll Logic (Wheel to Scroll)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const handleWheel = (e: WheelEvent) => {
+        // If scrolling vertically, translate to horizontal
+        if (e.deltaY !== 0) {
+          // Prevent default vertical scroll only if we can scroll horizontally
+          // or just always map it for this container
+          e.preventDefault();
+          container.scrollLeft += e.deltaY;
+        }
+      };
+      container.addEventListener("wheel", handleWheel, { passive: false });
+      return () => container.removeEventListener("wheel", handleWheel);
+    }
+  }, []);
+
   // Fetch Master Database
   useEffect(() => {
     if (isAddModalOpen && foodDatabase.length === 0) {
@@ -107,10 +137,14 @@ export default function InventoryPage() {
   }, [isAddModalOpen]);
 
   const safeInventory = Array.isArray(inventory) ? inventory : [];
+  
   const filteredItems =
     filter === "All"
       ? safeInventory.filter((i:any) => i.status === 'ACTIVE' && i.quantity > 0)
-      : safeInventory.filter((item: any) => item.category === filter && item.status === 'ACTIVE' && item.quantity > 0);
+      : safeInventory.filter((item: any) => {
+          const categories = Array.isArray(item.category) ? item.category : [item.category];
+          return categories.includes(filter) && item.status === 'ACTIVE' && item.quantity > 0;
+      });
 
   const handleSelectFood = (foodItem: any) => {
     setConfiguringFood(foodItem);
@@ -169,7 +203,6 @@ export default function InventoryPage() {
     }
   };
 
-  // 1. Hard Delete (Accidental Entry)
   const handleAccidentalDelete = async () => {
     if (!selectedItem) return;
     try {
@@ -181,13 +214,11 @@ export default function InventoryPage() {
     }
   };
 
-  // 2. Open Action Modal
   const openActionModal = (type: "CONSUME" | "WASTE") => {
     setActionForm({ quantity: selectedItem.quantity, type });
     setIsActionModalOpen(true);
   };
 
-  // 3. Submit Consumption/Wastage (Partial Updates)
   const handleUpdateStock = async () => {
     if (!selectedItem) return;
 
@@ -242,20 +273,29 @@ export default function InventoryPage() {
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-4 lg:pb-6 no-scrollbar">
+        {/* Filters with Horizontal Scroll Animation */}
+        <div 
+          ref={scrollContainerRef}
+          className="p-5 flex gap-2 overflow-x-auto pb-4 lg:pb-6 cursor-grab active:cursor-grabbing no-scrollbar"
+          style={{ 
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none' 
+          }}
+        >
           {CATEGORIES.map((cat) => (
-            <button
+            <motion.button
               key={cat}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setFilter(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
+              className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors border ${
                 filter === cat
                   ? "bg-[#0A3323] text-[#D4FF47] border-[#0A3323]"
                   : "bg-white text-gray-500 border-gray-200 hover:border-[#0A3323]"
               }`}
             >
               {cat}
-            </button>
+            </motion.button>
           ))}
         </div>
 
@@ -332,7 +372,7 @@ export default function InventoryPage() {
                           </span>
                         </div>
                         <span className="text-[10px] text-gray-400 uppercase tracking-wide">
-                          {item.category}
+                          {Array.isArray(item.category) ? item.category[0] : item.category}
                         </span>
                       </div>
                     </div>
@@ -584,7 +624,7 @@ export default function InventoryPage() {
                     {selectedItem.name}
                   </h3>
                   <span className="px-3 py-1 bg-[#E8F5E9] text-[#0A3323] text-xs font-bold rounded-full mt-2">
-                    {selectedItem.category}
+                    {Array.isArray(selectedItem.category) ? selectedItem.category[0] : selectedItem.category}
                   </span>
                 </div>
 
