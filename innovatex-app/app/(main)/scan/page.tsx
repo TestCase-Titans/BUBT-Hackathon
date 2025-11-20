@@ -1,5 +1,3 @@
-// testcase-titans/bubt-hackathon/TestCase-Titans-BUBT-Hackathon-7f2fc8260090a6a6c6812ca1c49b4545799e53a2/innovatex-app/app/(main)/scan/page.tsx
-
 'use client';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,14 +40,14 @@ export default function ScanPage() {
   // UI States
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false); // New State for AI loading text
   
   // Data States
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   
-  // FIX: Explicitly type the state here
   const [newItemFormData, setNewItemFormData] = useState<ScanFormData>({
     name: '',
-    category: [], // Default value as array
+    category: [],
     quantity: 1,
     unit: 'pcs',
     expiryDays: 7,
@@ -67,7 +65,7 @@ export default function ScanPage() {
     }
   };
 
-  // 2. Handle Image Upload (Cloudinary)
+  // 2. Handle Image Upload & AI Analysis (UPDATED LOGIC)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -78,6 +76,7 @@ export default function ScanPage() {
     }
 
     setScanning(true);
+    setAiLoading(true); // Show loading state
     setScanned(false); 
     setUploadedImageUrl(null); 
 
@@ -87,37 +86,56 @@ export default function ScanPage() {
     data.append("cloud_name", CLOUD_NAME);
 
     try {
-      const [uploadResult] = await Promise.all([
-        fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-            method: "POST",
-            body: data,
-        }).then(res => res.json()),
-        new Promise(resolve => setTimeout(resolve, 2000)) 
-      ]);
+      // Step A: Upload to Cloudinary
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+          method: "POST",
+          body: data,
+      });
+      const uploadResult = await uploadRes.json();
       
       if (uploadResult.secure_url) {
         setUploadedImageUrl(uploadResult.secure_url);
-        setScanned(true);
+
+        // Step B: Call our own Next.js API to process with Gemini
+        try {
+           const aiResponse = await fetch('/api/scan', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ imageUrl: uploadResult.secure_url })
+           });
+
+           const aiResult = await aiResponse.json();
+
+           if (aiResult.success && aiResult.data) {
+              // Step C: Populate Form with AI Data
+              const aiData = aiResult.data;
+              setNewItemFormData({
+                name: aiData.name || '',
+                category: aiData.category ? [aiData.category] : [], // AI returns string, we need array
+                quantity: Number(aiData.quantity) || 1,
+                unit: aiData.unit || 'pcs',
+                expiryDays: Number(aiData.expiryDays) || 7,
+                cost: Number(aiData.cost) || 0,
+              });
+           }
+        } catch (aiError) {
+          console.error("AI Analysis failed, defaulting to manual input", aiError);
+          // Fallback: Just keep the image, user enters text manually
+        }
         
-        setNewItemFormData({
-            name: '',
-            category: [],
-            quantity: 1,
-            unit: 'pcs',
-            expiryDays: 7,
-            cost: 0,
-        });
+        setScanned(true);
       } else {
         console.error("Cloudinary Upload Error:", uploadResult);
         alert("Upload failed: " + (uploadResult.error?.message || "Unknown error"));
         setScanned(false);
       }
     } catch (error) {
-      console.error("Image Upload Error:", error);
+      console.error("Process Error:", error);
       alert("Image upload failed! Check console for details.");
       setScanned(false);
     } finally {
       setScanning(false);
+      setAiLoading(false);
       if(e.target) e.target.value = '';
     }
   };
@@ -142,11 +160,6 @@ export default function ScanPage() {
     return;
   }
 
-  // UPDATED VALIDATION: Cost and Quantity (Unit) must be > 0
-  if (newItemFormData.cost <= 0) {
-    alert("Cost must be greater than 0.");
-    return;
-  }
   if (newItemFormData.quantity <= 0) {
     alert("Quantity must be greater than 0.");
     return;
@@ -223,7 +236,7 @@ export default function ScanPage() {
       <div className="h-full pb-24 pt-8 px-6 lg:px-12 flex flex-col max-w-5xl mx-auto">
         <div className="text-center lg:text-left mb-8">
           <h2 className="text-3xl lg:text-4xl font-serif text-[#0A3323] mb-2">Smart Scan</h2>
-          <p className="text-gray-500">Upload a receipt or snap a photo of your grocery haul.</p>
+          <p className="text-gray-500">Upload a receipt or snap a photo. AI will handle the rest.</p>
         </div>
 
         <input 
@@ -255,7 +268,7 @@ export default function ScanPage() {
              {scanning && (
                  <>
                     <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
-                       <span className="text-6xl lg:text-9xl">🥦</span>
+                       <span className="text-6xl lg:text-9xl animate-pulse">🥦</span>
                     </div>
                     <motion.div 
                       className="absolute top-0 left-0 right-0 h-1 bg-[#D4FF47] shadow-[0_0_20px_#D4FF47] z-20"
@@ -264,8 +277,9 @@ export default function ScanPage() {
                     />
                     <div className="absolute inset-0 bg-[#0A3323]/20 z-10" />
                     <div className="absolute bottom-8 w-full text-center z-30">
-                        <span className="bg-black/50 text-white px-6 py-2 rounded-full text-xs font-mono uppercase tracking-widest backdrop-blur-md">
-                            Processing Intelligence...
+                        <span className="bg-black/50 text-white px-6 py-2 rounded-full text-xs font-mono uppercase tracking-widest backdrop-blur-md flex items-center justify-center gap-2 w-fit mx-auto">
+                            <Loader2 size={12} className="animate-spin"/> 
+                            Analyzing with Gemini AI...
                         </span>
                     </div>
                  </>
@@ -281,7 +295,7 @@ export default function ScanPage() {
                        <Check size={32} className="text-[#0A3323]" />
                    </div>
                    <h3 className="text-2xl font-bold text-white">Scan Complete</h3>
-                   <p className="text-white/60 text-sm mt-2 mb-8">Image uploaded successfully.</p>
+                   <p className="text-white/60 text-sm mt-2 mb-8">AI has detected items.</p>
                    <button 
                      onClick={handleResetScan}
                      className="px-8 py-3 bg-[#D4FF47] text-[#0A3323] rounded-xl font-bold text-sm hover:bg-white transition-colors"
@@ -313,7 +327,7 @@ export default function ScanPage() {
                     <div className="flex-1 space-y-5">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-2xl font-bold text-[#0A3323] flex items-center gap-2">
-                                <UploadCloud size={24} /> Item Details
+                                <UploadCloud size={24} /> AI Detection
                             </h3>
                             <button onClick={() => setScanned(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 shadow-sm">
                                 <X size={20} className="text-gray-500" />
