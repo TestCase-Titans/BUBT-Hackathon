@@ -1,8 +1,11 @@
+// testcase-titans/bubt-hackathon/TestCase-Titans-BUBT-Hackathon-7f2fc8260090a6a6c6812ca1c49b4545799e53a2/innovatex-app/app/login/page.tsx
+
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Leaf, AlertCircle } from 'lucide-react';
+import { Leaf, AlertCircle, ArrowLeft } from 'lucide-react';
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -170,6 +173,20 @@ export default function LoginPage() {
 
       {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 lg:p-16 relative bg-[#F3F6F4] overflow-y-auto">
+        
+        {/* Back to Home Button */}
+        <div className="absolute top-6 left-6 lg:top-10 lg:left-10 z-20">
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 text-gray-500 hover:text-[#0A3323] transition-colors font-bold text-xs uppercase tracking-widest group"
+            >
+              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform text-[#0A3323]">
+                 <ArrowLeft size={16} />
+              </div>
+              <span className="hidden sm:inline">Back to Home</span>
+            </Link>
+        </div>
+
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}

@@ -41,8 +41,8 @@ export const DashboardNavbar = () => {
 
         <div className="relative z-10 flex items-center justify-between px-6 py-3 transition-all duration-300">
           
-          {/* Logo Area */}
-          <div className="flex items-center gap-3">
+          {/* Logo Area - Wrapped in Link for redirection */}
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
             <div className="w-10 h-10 bg-gradient-to-br from-[#D4FF47] to-[#A0CC00] rounded-xl flex items-center justify-center shadow-lg shadow-[#D4FF47]/20 ring-1 ring-white/50 dark:ring-black/20">
               <Leaf size={20} className="text-[#0A3323] drop-shadow-sm" />
             </div>
@@ -51,7 +51,7 @@ export const DashboardNavbar = () => {
                 Eco-Loop
               </h1>
             </div>
-          </div>
+          </Link>
 
           {/* Radix Navigation Menu */}
           <NavigationMenu.Root className="relative hidden lg:flex items-center justify-center">
