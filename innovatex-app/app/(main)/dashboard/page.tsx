@@ -233,6 +233,21 @@ export default function DashboardPage() {
           <div className="lg:col-span-1 space-y-6">
             {/* Quick Actions */}
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+              {/* Daily Insight */}
+              <div className="bg-[#E8F5E9] p-6 rounded-3xl border border-[#0A3323]/5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-white rounded-full shadow-sm">
+                    <Wind size={20} className="text-[#0A3323]" />
+                  </div>
+                  <h3 className="font-serif text-lg text-[#0A3323]">
+                    Daily Insight
+                  </h3>
+                </div>
+                <p className="text-sm text-[#0A3323]/80 leading-relaxed mb-4">
+                  "Store potatoes and onions separately. When kept together,
+                  they release gases that cause both to spoil faster."
+                </p>
+              </div>
               <Link href="/scan">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
