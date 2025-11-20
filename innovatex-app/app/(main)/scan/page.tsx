@@ -5,6 +5,7 @@ import { Camera, Check, Loader2, Save, UploadCloud, X, Tag, Plus, Trash2, Calend
 import PageWrapper from '@/components/PageWrapper';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { useNotification } from '@/context/NotificationContext';
 
 // Detailed Categories List
 const CATEGORIES = [
@@ -34,6 +35,7 @@ interface ScanFormData {
 export default function ScanPage() {
   const router = useRouter();
   const { setInventory } = useApp();
+  const { notify } = useNotification();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // UI States
@@ -61,7 +63,7 @@ export default function ScanPage() {
     if (!file) return;
 
     if (!CLOUD_NAME || !UPLOAD_PRESET) {
-        alert("Cloudinary configuration missing");
+        notify("Cloudinary configuration missing");
         return;
     }
 
@@ -115,12 +117,12 @@ export default function ScanPage() {
         
         setScanned(true);
       } else {
-        alert("Upload failed: " + (uploadResult.error?.message || "Unknown error"));
+        notify("Upload failed: " + (uploadResult.error?.message || "Unknown error"), "error");
         setScanned(false);
       }
     } catch (error) {
       console.error("Image Upload Error:", error);
-      alert("Image upload failed!");
+      notify("Image upload failed!", "error");
       setScanned(false);
     } finally {
       setScanning(false);
@@ -210,7 +212,7 @@ export default function ScanPage() {
       }
     } catch (error) {
       console.error("Save Error:", error);
-      alert("Failed to save items!");
+      notify("Failed to save items!", "error");
     }
   };
 

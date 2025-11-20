@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { LogOut, ChevronRight, Save, X, Edit2, Camera, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import PageWrapper from '@/components/PageWrapper';
+import { useNotification } from '@/context/NotificationContext';
 
 const DIETARY_OPTIONS = [
   "Vegetarian",
@@ -35,6 +36,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { notify } = useNotification();
   
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
@@ -98,7 +100,7 @@ export default function ProfilePage() {
     if (!file) return;
 
     if (!CLOUD_NAME || !UPLOAD_PRESET) {
-      alert("Cloudinary configuration missing in .env file");
+      notify("Cloudinary configuration missing in .env file");
       return;
     }
 
@@ -129,13 +131,13 @@ export default function ProfilePage() {
 
       if (updateRes.ok) {
         setProfileData((prev) => ({ ...prev, image: imageUrl }));
-        alert("Profile picture updated!");
+        notify("Profile picture updated!");
       } else {
         throw new Error("Database update failed");
       }
     } catch (error) {
       console.error("Upload failed", error);
-      alert("Failed to upload image");
+      notify("Failed to upload image");
     } finally {
       setUploading(false);
     }

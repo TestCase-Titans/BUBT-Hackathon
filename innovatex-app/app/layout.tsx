@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import { AppProvider } from "@/context/AppContext";
-import { NotificationProvider } from "@/context/NotificationContext";
+import { NotificationProvider } from "@/context/NotificationContext"; // 1. Ensure this import exists
 
 export const metadata = {
   title: "Eco-Loop",

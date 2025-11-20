@@ -19,6 +19,7 @@ import {
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
 import PageWrapper from "@/components/PageWrapper";
+import { useNotification } from "@/context/NotificationContext";
 
 // Updated Categories to match Scan Page + Canned/All
 const CATEGORIES = [
@@ -64,6 +65,7 @@ const ItemIcon = ({ src, alt, className, size = "text-3xl" }: { src: string, alt
 export default function InventoryPage() {
   const { inventory, setInventory } = useApp();
   const [filter, setFilter] = useState("All");
+  const { notify } = useNotification();
   
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -197,9 +199,11 @@ export default function InventoryPage() {
         setInventory((prev: any) => [...prev, formatted]);
         setIsAddModalOpen(false);
         setConfiguringFood(null);
+        notify(`${newItem.name} added to pantry`, "success");
       }
     } catch (error) {
       console.error("Failed to add item", error);
+      notify("Failed to add item", "error");
     }
   };
 
@@ -208,9 +212,11 @@ export default function InventoryPage() {
     try {
       await fetch(`/api/inventory/${selectedItem.id}`, { method: "DELETE" });
       setInventory(safeInventory.filter((i: any) => i.id !== selectedItem.id));
+      notify("Item deleted", "info");
       setSelectedItem(null);
     } catch (error) {
       console.error("Delete failed", error);
+      notify("Failed to delete item", "error");
     }
   };
 
@@ -250,6 +256,9 @@ export default function InventoryPage() {
       }
     } catch (error) {
       console.error("Update failed", error);
+      notify("Failed to update stock", "error");
+      const actionText = actionForm.type === 'CONSUME' ? 'consumed' : 'wasted';
+      notify(`Item marked as ${actionText}`, "success");
     }
   };
 

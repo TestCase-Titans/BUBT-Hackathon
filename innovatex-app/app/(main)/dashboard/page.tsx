@@ -19,15 +19,14 @@ import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
 import PageWrapper from "@/components/PageWrapper";
 import { useEffect, useState, useRef } from "react";
-import { useNotification } from "@/context/NotificationContext"; // Imported Hook
+import { useNotification } from "@/context/NotificationContext"; 
 
 export default function DashboardPage() {
   const { inventory, user } = useApp();
-  const { notify } = useNotification(); // Access notification function
+  const { notify } = useNotification(); 
   
   const safeInventory = Array.isArray(inventory) ? inventory : [];
 
-  // Refs to prevent duplicate notifications in Strict Mode
   const hasWelcomed = useRef(false);
   const hasWarned = useRef(false);
 
@@ -43,7 +42,6 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   
-  // New state for dynamic location
   const [locationName, setLocationName] = useState("Locating...");
 
   useEffect(() => {
@@ -64,7 +62,6 @@ export default function DashboardPage() {
     fetchStats();
   }, []);
 
-  // --- NEW: Welcome Notification Logic ---
   useEffect(() => {
     if (user && !hasWelcomed.current) {
       const firstName = user.name?.split(" ")[0] || "Chef";
@@ -73,12 +70,10 @@ export default function DashboardPage() {
     }
   }, [user, notify]);
 
-  // --- NEW: Expiry Warning Notification Logic ---
   useEffect(() => {
     const expiringItemsCount = safeInventory.filter((i: any) => i.expiryDays < 3).length;
     
     if (expiringItemsCount > 0 && !hasWarned.current) {
-      // Slight delay so it stacks nicely after the welcome message
       setTimeout(() => {
         notify(`Alert: You have ${expiringItemsCount} items expiring soon!`, "warning");
       }, 1500);
@@ -86,13 +81,11 @@ export default function DashboardPage() {
     }
   }, [safeInventory, notify]);
 
-  // Fetch User Location
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          // Use OpenStreetMap Nominatim (Free, No Key Required)
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
           );
@@ -117,7 +110,6 @@ export default function DashboardPage() {
 
   const expiringItems = safeInventory.filter((i: any) => i.expiryDays < 3);
 
-  // Helper for Log Colors
   const getActionColor = (action: string) => {
     switch (action) {
       case "ADD":
@@ -207,88 +199,94 @@ export default function DashboardPage() {
               </div>
             </motion.div>
 
-            {/* --- FINANCIAL & STATS GRID --- */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
-              {/* 1. Items Tracked */}
-              <motion.div
-                className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
-              >
-                <Leaf size={20} className="text-[#0A3323] mb-2" />
-                {loading ? (
-                  <div className="h-6 w-8 bg-gray-200 rounded animate-pulse" />
-                ) : (
+            {/* --- FINANCIAL & STATS GRID (UPDATED LAYOUT) --- */}
+            <div className="space-y-3 lg:space-y-4">
+              {/* Row 1: Active, Value, Streak */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4">
+                {/* 1. Items Tracked */}
+                <motion.div
+                  className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
+                >
+                  <Leaf size={20} className="text-[#0A3323] mb-2" />
+                  {loading ? (
+                    <div className="h-6 w-8 bg-gray-200 rounded animate-pulse" />
+                  ) : (
+                    <span className="text-lg font-bold text-[#0A3323]">
+                      {stats.inventoryCount}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">
+                    Active
+                  </span>
+                </motion.div>
+
+                {/* 2. Pantry Value */}
+                <motion.div
+                  className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
+                >
+                  <Coins size={20} className="text-[#0A3323] mb-2" />
+                  {loading ? (
+                    <div className="h-6 w-12 bg-gray-200 rounded animate-pulse" />
+                  ) : (
+                    <span className="text-lg font-bold text-[#0A3323]">
+                      ৳{stats.pantryValue}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">
+                    Value
+                  </span>
+                </motion.div>
+
+                {/* 5. Streak */}
+                <motion.div
+                  className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors col-span-2 md:col-span-1`}
+                >
+                  <Sun size={20} className="text-yellow-500 mb-2" />
                   <span className="text-lg font-bold text-[#0A3323]">
-                    {stats.inventoryCount}
+                    {stats.streak}
                   </span>
-                )}
-                <span className="text-[10px] text-gray-500 uppercase font-bold">
-                  Active
-                </span>
-              </motion.div>
-
-              {/* 2. Pantry Value */}
-              <motion.div
-                className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
-              >
-                <Coins size={20} className="text-[#0A3323] mb-2" />
-                {loading ? (
-                  <div className="h-6 w-12 bg-gray-200 rounded animate-pulse" />
-                ) : (
-                  <span className="text-lg font-bold text-[#0A3323]">
-                    ৳{stats.pantryValue}
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">
+                    Streak
                   </span>
-                )}
-                <span className="text-[10px] text-gray-500 uppercase font-bold">
-                  Value
-                </span>
-              </motion.div>
+                </motion.div>
+              </div>
 
-              {/* 3. Saved Wastage */}
-              <motion.div
-                className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors border border-[#D4FF47]/30 bg-[#D4FF47]/5`}
-              >
-                <TrendingUp size={20} className="text-[#0A3323] mb-2" />
-                {loading ? (
-                  <div className="h-6 w-12 bg-gray-200 rounded animate-pulse" />
-                ) : (
-                  <span className="text-lg font-bold text-[#0A3323]">
-                    ৳{stats.moneySaved}
+              {/* Row 2: Saved, Wasted */}
+              <div className="grid grid-cols-2 gap-3 lg:gap-4">
+                {/* 3. Saved Wastage */}
+                <motion.div
+                  className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors border border-[#D4FF47]/30 bg-[#D4FF47]/5`}
+                >
+                  <TrendingUp size={20} className="text-[#0A3323] mb-2" />
+                  {loading ? (
+                    <div className="h-6 w-12 bg-gray-200 rounded animate-pulse" />
+                  ) : (
+                    <span className="text-lg font-bold text-[#0A3323]">
+                      ৳{stats.moneySaved}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">
+                    Saved
                   </span>
-                )}
-                <span className="text-[10px] text-gray-500 uppercase font-bold">
-                  Saved
-                </span>
-              </motion.div>
+                </motion.div>
 
-              {/* 4. Money Wasted */}
-              <motion.div
-                className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
-              >
-                <TrendingDown size={20} className="text-[#FF6B6B] mb-2" />
-                {loading ? (
-                  <div className="h-6 w-12 bg-gray-200 rounded animate-pulse" />
-                ) : (
-                  <span className="text-lg font-bold text-[#FF6B6B]">
-                    ৳{stats.moneyWasted}
+                {/* 4. Money Wasted */}
+                <motion.div
+                  className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
+                >
+                  <TrendingDown size={20} className="text-[#FF6B6B] mb-2" />
+                  {loading ? (
+                    <div className="h-6 w-12 bg-gray-200 rounded animate-pulse" />
+                  ) : (
+                    <span className="text-lg font-bold text-[#FF6B6B]">
+                      ৳{stats.moneyWasted}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">
+                    Wasted
                   </span>
-                )}
-                <span className="text-[10px] text-gray-500 uppercase font-bold">
-                  Wasted
-                </span>
-              </motion.div>
-
-              {/* 5. Streak */}
-              <motion.div
-                className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
-              >
-                <Sun size={20} className="text-yellow-500 mb-2" />
-                <span className="text-lg font-bold text-[#0A3323]">
-                  {stats.streak}
-                </span>
-                <span className="text-[10px] text-gray-500 uppercase font-bold">
-                  Streak
-                </span>
-              </motion.div>
+                </motion.div>
+              </div>
             </div>
           </div>
 
@@ -311,7 +309,7 @@ export default function DashboardPage() {
                   they release gases that cause both to spoil faster."
                 </p>
               </div>
-              <Link href="/scan">
+              {/* <Link href="/scan">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="bg-white p-6 rounded-3xl shadow-sm flex flex-col justify-between h-40 group relative overflow-hidden cursor-pointer"
@@ -329,7 +327,7 @@ export default function DashboardPage() {
                     className="relative z-10 self-end text-gray-300 group-hover:text-[#0A3323] transition-colors"
                   />
                 </motion.div>
-              </Link>
+              </Link> */}
 
               <Link href="/inventory">
                 <motion.div
