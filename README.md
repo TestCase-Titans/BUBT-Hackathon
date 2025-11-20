@@ -43,7 +43,7 @@ Follow these steps to set up the project locally.
 Clone the repository and install the dependencies:
 
 ```sh
-git clonehttps://github.com/TestCase-Titans/BUBT-Hackathon.git
+git clone https://github.com/TestCase-Titans/BUBT-Hackathon.git
 cd eco-loop
 npm install
 ```
