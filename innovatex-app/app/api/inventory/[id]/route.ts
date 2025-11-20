@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import { Inventory, ActionLog } from "@/lib/models";
+import { Inventory, ActionLog } from "@/lib/models"; // Import ActionLog
 import { auth } from "@/lib/auth";
 
 export async function DELETE(
@@ -22,7 +22,7 @@ export async function DELETE(
       inventoryId: id,
       itemName: item.name,
       category: item.category,
-      cost: (item.costPerUnit || 0) * item.quantity, // Log value of deleted item
+      cost: (item.costPerUnit || 0) * item.quantity,
       actionType: "DELETE",
       quantityChanged: item.quantity,
       unit: item.unit,
@@ -54,7 +54,6 @@ export async function PATCH(
   let logActionType = "UPDATE";
   let logQuantity = 0;
 
-  // Handle Consume/Waste Actions
   if (body.action === "CONSUME" || body.action === "WASTE") {
     const amountToRemove = Number(body.quantity) || 0;
     const newQuantity = currentItem.quantity - amountToRemove;
@@ -85,11 +84,8 @@ export async function PATCH(
       userId,
       inventoryId: id,
       itemName: currentItem.name,
-      
-      // Store snapshot of category and calculated cost
       category: currentItem.category,
       cost: (currentItem.costPerUnit || 0) * logQuantity,
-
       actionType: logActionType,
       quantityChanged: logQuantity,
       unit: currentItem.unit,

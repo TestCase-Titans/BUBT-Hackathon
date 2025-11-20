@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import { Inventory, ActionLog } from "@/lib/models";
+import { Inventory, ActionLog } from "@/lib/models"; // Import ActionLog
 import { auth } from "@/lib/auth";
 
 export async function GET() {
@@ -47,7 +47,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session || !session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   await dbConnect();
   
@@ -55,6 +58,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userId = (session.user as any).id;
     
+    // 1. Create the Inventory Item
     const newItem = await Inventory.create({
       userId: userId,
       name: body.name,
@@ -72,14 +76,12 @@ export async function POST(request: Request) {
       userId: userId,
       inventoryId: newItem._id,
       itemName: newItem.name,
-      
       category: newItem.category,
       cost: (newItem.costPerUnit || 0) * newItem.quantity,
-      
       actionType: "ADD",
       quantityChanged: newItem.quantity,
       unit: newItem.unit,
-      reason: "Initial Add"
+      reason: "Scanned/Manual Add"
     });
     
     return NextResponse.json(newItem);
