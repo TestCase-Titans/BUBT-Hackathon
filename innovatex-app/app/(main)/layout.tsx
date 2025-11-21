@@ -1,7 +1,8 @@
 "use client";
 import type { ReactNode } from "react";
-import { DashboardNavbar } from "@/components/DashboardNavbar"; // Import the new Navbar
+import { DashboardNavbar } from "@/components/DashboardNavbar";
 import { MobileNavigation } from "@/components/MobileDock";
+import { ChatFab } from "@/components/ChatFab"; // Import the new FAB
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
@@ -10,10 +11,10 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       {/* Top Navbar (Desktop) */}
       <DashboardNavbar />
 
-      {/* Main Content Area 
-          - Removed lg:pl-64 (sidebar offset)
-          - Added pt-24 (to push content below fixed navbar)
-      */}
+      {/* Floating Chat Button - Added Here */}
+      <ChatFab />
+
+      {/* Main Content Area */}
       <main className="w-full pt-24 pb-8 min-h-screen">
         {children}
         

@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Leaf, LayoutGrid, ScanLine, BookOpen, User, LogOut, Home } from 'lucide-react';
+import { Leaf, LayoutGrid, ScanLine, BookOpen, User, LogOut, Home, Sparkles } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 export const DesktopSidebar = () => {
@@ -14,6 +14,7 @@ export const DesktopSidebar = () => {
     { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', path: '/dashboard' },
     { id: 'inventory', icon: Leaf, label: 'My Pantry', path: '/inventory' },
     { id: 'scan', icon: ScanLine, label: 'Smart Scan', path: '/scan' },
+    { id: 'chat', icon: Sparkles, label: 'NourishBot', path: '/chat' }, // New Chat Feature
     { id: 'resources', icon: BookOpen, label: 'Library', path: '/resources' },
     { id: 'profile', icon: User, label: 'Profile', path: '/profile' },
   ];
