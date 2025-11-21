@@ -193,7 +193,7 @@ export default function LoginPage() {
             <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform text-[#0A3323]">
               <ArrowLeft size={16} />
             </div>
-            <span className="hidden sm:inline">Back to Home</span>
+            <span className="hidden sm:inline">Home</span>
           </Link>
         </div>
 
