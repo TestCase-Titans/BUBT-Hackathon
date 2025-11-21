@@ -9,221 +9,105 @@ export const dynamic = "force-dynamic";
 
 // Estimated Calories per Unit (e.g., kg, L, or pack)
 const CALORIE_ESTIMATES: Record<string, number> = {
-  Grain: 3500, // ~350 kCal/100g -> 3500/kg (Rice/Flour)
-  Vegetable: 400, // Avg mixed veggies
-  Fruit: 500, // Avg fruit
-  "Meat Protein": 2000, // Chicken/Beef avg
-  "Fish Protein": 1500,
-  "Dairy Protein": 150, // Per unit (egg?) or adjusted logic below
-  Dairy: 700, // Milk/Curd
-  Fats: 8800, // Oil
-  Snack: 500, // Per pack
-  Beverage: 400, // Sugary drinks
-  Spices: 0,
-  General: 200,
+  Grain: 3500, Vegetable: 400, Fruit: 500, "Meat Protein": 2000,
+  "Fish Protein": 1500, "Dairy Protein": 150, Dairy: 700, Fats: 8800,
+  Snack: 500, Beverage: 400, Spices: 0, General: 200,
 };
 
-// Daily Calorie Thresholds (Per Person) for "Health Logic"
+// Daily Calorie Thresholds
 const THRESHOLDS: Record<string, { min?: number; max?: number }> = {
-  Grain: { max: 1200 }, // Too much rice?
-  Vegetable: { min: 200 }, // Eat your veggies!
-  Fruit: { min: 100 },
-  "Meat Protein": { max: 800 },
-  Snack: { max: 250 }, // Limit junk
-  Fats: { max: 400 },
+  Grain: { max: 1200 }, Vegetable: { min: 200 }, Fruit: { min: 100 },
+  "Meat Protein": { max: 800 }, Snack: { max: 250 }, Fats: { max: 400 },
 };
 
 export async function GET() {
   const session = await auth();
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "API configuration error" },
-      { status: 500 }
-    );
-  }
+  if (!session || !session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await dbConnect();
   const userId = new mongoose.Types.ObjectId((session.user as any).id);
+  const apiKey = process.env.GOOGLE_API_KEY;
 
   try {
-    // 1. Fetch User to get Household Size
     const userProfile = await User.findById(userId);
     const householdSize = userProfile?.householdSize || 1;
 
-    // 2. Fetch Consumption Logs (Last 30 Days)
+    // Fetch Logs (Last 30 Days)
     const rawConsumption = await ActionLog.aggregate([
-      {
-        $match: {
-          userId: userId,
-          actionType: "CONSUME",
-          createdAt: {
-            $gte: new Date(new Date().setDate(new Date().getDate() - 30)),
-          },
-        },
-      },
+      { $match: { userId: userId, actionType: "CONSUME", createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
       { $unwind: "$category" },
-      {
-        $project: {
-          dayOfWeek: { $dayOfWeek: "$createdAt" },
-          category: 1,
-          quantityChanged: 1,
-          unit: 1,
-        },
-      },
+      { $project: { dayOfWeek: { $dayOfWeek: "$createdAt" }, category: 1, quantityChanged: 1, unit: 1 } },
     ]);
 
-    // 3. Process Data: Calculate Calories & Averages
-    const processedStats: Record<string, any> = {}; // Chart Data map
-    const categoryTotalCalories: Record<string, number> = {}; // For analysis
-
+    const processedStats: Record<string, any> = {};
+    const categoryTotalCalories: Record<string, number> = {};
     let totalCaloriesConsumed = 0;
 
     rawConsumption.forEach((log) => {
       const cat = log.category;
-      const qty = log.quantityChanged || 1;
-
-      // Normalization (Simple heuristic)
       const factor = CALORIE_ESTIMATES[cat] || 200;
-      const normalizedQty =
-        log.unit === "g" || log.unit === "ml" ? qty / 1000 : qty;
+      const normalizedQty = log.unit === "g" || log.unit === "ml" ? (log.quantityChanged || 1) / 1000 : (log.quantityChanged || 1);
+      const calPerPerson = Math.round((normalizedQty * factor) / householdSize);
 
-      const totalCal = Math.round(normalizedQty * factor);
-
-      // --- KEY CHANGE: Average per Household Member ---
-      const calPerPerson = Math.round(totalCal / householdSize);
-
-      // Add to Chart Data (Day-Category bucket)
+      // Chart Data Construction
       const key = `${log.dayOfWeek}-${cat}`;
-      if (!processedStats[key]) processedStats[key] = 0;
-      processedStats[key] += calPerPerson;
+      processedStats[key] = (processedStats[key] || 0) + calPerPerson;
 
-      // Add to Totals
-      categoryTotalCalories[cat] =
-        (categoryTotalCalories[cat] || 0) + calPerPerson;
+      // Totals for Pie Chart
+      categoryTotalCalories[cat] = (categoryTotalCalories[cat] || 0) + calPerPerson;
       totalCaloriesConsumed += calPerPerson;
     });
 
-    // 4. Determine Over/Under Consumption
-    const imbalanceReport: {
-      category: string;
-      status: "OVER" | "UNDER";
-      diff: number;
-    }[] = [];
-    const dailyAvgTotal = totalCaloriesConsumed / 30; // Approx daily avg over the period
+    // --- NEW: Prepare Pie Chart Data ---
+    const categoryBreakdown = Object.entries(categoryTotalCalories)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value); // Sort big to small
 
-    Object.entries(categoryTotalCalories).forEach(([cat, totalMonthCal]) => {
-      const dailyAvg = totalMonthCal / 30;
-      const rules = THRESHOLDS[cat];
-
-      if (rules) {
-        if (rules.max && dailyAvg > rules.max) {
-          imbalanceReport.push({
-            category: cat,
-            status: "OVER",
-            diff: Math.round(dailyAvg - rules.max),
-          });
-        } else if (rules.min && dailyAvg < rules.min) {
-          imbalanceReport.push({
-            category: cat,
-            status: "UNDER",
-            diff: Math.round(rules.min - dailyAvg),
-          });
-        }
-      }
-    });
-
-    // 5. Format Chart Data
+    // Bar Chart Data
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const chartData = days.map((day, index) => {
-      const dayIndex = index + 1;
       const dataPoint: any = { name: day };
       Object.keys(processedStats).forEach((key) => {
-        const [d, c] = key.split("-");
-        if (parseInt(d) === dayIndex) {
-          dataPoint[c] = processedStats[key];
-        }
+        if (parseInt(key.split("-")[0]) === index + 1) dataPoint[key.split("-")[1]] = processedStats[key];
       });
       return dataPoint;
     });
 
-    // 6. Calculate Metrics for UI Cards
+    // Metrics Calculation
     let topCategory = { name: "N/A", percentage: 0 };
-    let maxVal = 0;
-    Object.entries(categoryTotalCalories).forEach(([cat, cal]) => {
-      if (cal > maxVal) {
-        maxVal = cal;
-        topCategory.name = cat;
-      }
-    });
-    if (totalCaloriesConsumed > 0) {
-      topCategory.percentage = Math.round(
-        (maxVal / totalCaloriesConsumed) * 100
-      );
+    const maxEntry = categoryBreakdown[0];
+    if (maxEntry && totalCaloriesConsumed > 0) {
+      topCategory = { name: maxEntry.name, percentage: Math.round((maxEntry.value / totalCaloriesConsumed) * 100) };
     }
 
+    // Waste Stats for Goal Progress
     const wasteStats = await ActionLog.aggregate([
-      {
-        $match: {
-          userId: userId,
-          actionType: "WASTE",
-          createdAt: {
-            $gte: new Date(new Date().setDate(new Date().getDate() - 30)),
-          },
-        },
-      },
+      { $match: { userId: userId, actionType: "WASTE", createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
       { $group: { _id: null, count: { $sum: 1 } } },
     ]);
-    const goalProgress =
-      rawConsumption.length + (wasteStats[0]?.count || 0) === 0
-        ? 0
-        : Math.round(
-            (rawConsumption.length /
-              (rawConsumption.length + (wasteStats[0]?.count || 0))) *
-              100
-          );
+    const goalProgress = (rawConsumption.length + (wasteStats[0]?.count || 0)) === 0 ? 0 : Math.round((rawConsumption.length / (rawConsumption.length + (wasteStats[0]?.count || 0))) * 100);
 
-    // 7. AI Prediction (Targeted Recommendation)
+    // Imbalance Report
+    const imbalanceReport: any[] = [];
+    Object.entries(categoryTotalCalories).forEach(([cat, total]) => {
+      const avg = total / 30;
+      if (THRESHOLDS[cat]?.max && avg > THRESHOLDS[cat].max!) imbalanceReport.push({ category: cat, status: "OVER", diff: Math.round(avg - THRESHOLDS[cat].max!) });
+      else if (THRESHOLDS[cat]?.min && avg < THRESHOLDS[cat].min!) imbalanceReport.push({ category: cat, status: "UNDER", diff: Math.round(THRESHOLDS[cat].min! - avg) });
+    });
+
+    // AI Prediction
     let prediction = "Log more meals to enable smart insights.";
-    if (totalCaloriesConsumed > 0) {
+    if (totalCaloriesConsumed > 0 && apiKey) {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-      // Construct a specific prompt based on the imbalance report
-      const imbalanceText =
-        imbalanceReport.length > 0
-          ? imbalanceReport
-              .map((i) => `${i.status} consumed ${i.category}`)
-              .join(", ")
-          : "Balanced diet";
-
-      const prompt = `
-        Analysis Data (Avg per person):
-        - Total Daily Calories: ${Math.round(dailyAvgTotal)}
-        - Top Source: ${topCategory.name}
-        - Imbalances Detected: ${imbalanceText}
-        
-        Task: Give ONE specific, actionable suggestion to fix the imbalance. 
-        Format: "Because you eat too much [X], try [Y]." or "Boost your [X] intake by [Action]."
-        Max 15 words. No generic advice.
-      `;
-
+      const prompt = `Based on: Top Source ${topCategory.name}, Imbalances: ${imbalanceReport.map(i => i.category).join(', ') || 'None'}. Give ONE short advice (max 15 words).`;
       const result = await model.generateContent(prompt);
       prediction = result.response.text().replace(/\*/g, "").trim();
     }
 
-    return NextResponse.json({
-      chartData,
-      prediction,
-      metrics: { topCategory, goalProgress },
-      imbalances: imbalanceReport, // Pass this to UI
-    });
+    return NextResponse.json({ chartData, categoryBreakdown, prediction, metrics: { topCategory, goalProgress }, imbalances: imbalanceReport });
   } catch (error) {
-    console.error("Analytics Error:", error);
+    console.error(error);
     return NextResponse.json({ error: "Failed to analyze" }, { status: 500 });
   }
 }
