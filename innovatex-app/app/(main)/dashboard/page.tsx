@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Leaf,
+  Wheat,
   Sun,
   Wind,
   ArrowRight,
@@ -204,7 +204,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10">
-                <Leaf size={250} />
+                <Wheat size={250} />
               </div>
             </motion.div>
 
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                 <motion.div
                   className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
                 >
-                  <Leaf size={20} className="text-[#0A3323] mb-2" />
+                  <Wheat size={20} className="text-[#0A3323] mb-2" />
                   {loading ? (
                     <div className="h-6 w-8 bg-gray-200 rounded animate-pulse" />
                   ) : (

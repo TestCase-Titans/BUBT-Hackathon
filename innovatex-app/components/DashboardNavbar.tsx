@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import {
-  Leaf,
+  Wheat,
   LayoutGrid,
   ScanLine,
   BookOpen,
@@ -32,7 +32,7 @@ export const DashboardNavbar = () => {
       label: "Analytics",
       path: "/analytics",
     },
-    { id: "inventory", icon: Leaf, label: "My Pantry", path: "/inventory" },
+    { id: "inventory", icon: Wheat, label: "My Pantry", path: "/inventory" },
     { id: "scan", icon: ScanLine, label: "Smart Scan", path: "/scan" },
     { id: "resources", icon: BookOpen, label: "Library", path: "/resources" },
     { id: "profile", icon: User, label: "Profile", path: "/profile" },
@@ -65,7 +65,7 @@ export const DashboardNavbar = () => {
             className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
           >
             <div className="w-10 h-10 bg-gradient-to-br from-[#D4FF47] to-[#A0CC00] rounded-xl flex items-center justify-center shadow-lg shadow-[#D4FF47]/20 ring-1 ring-white/50 dark:ring-black/20">
-              <Leaf size={20} className="text-[#0A3323] drop-shadow-sm" />
+              <Wheat size={20} className="text-[#0A3323] drop-shadow-sm" />
             </div>
             <div className="hidden md:block">
               <h1 className="text-xl font-serif font-bold tracking-tight text-[#0A3323] dark:text-white leading-none drop-shadow-sm">

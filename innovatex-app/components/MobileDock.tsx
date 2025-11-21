@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  Leaf,
+  Wheat,
   LayoutGrid,
   ScanLine,
   BookOpen,
@@ -20,7 +20,7 @@ export const MobileNavigation = () => {
     { id: "home", icon: Home, path: "/" },
     { id: "dashboard", icon: LayoutGrid, path: "/dashboard" },
     { id: "analytics", icon: BarChart3, path: "/analytics" },
-    { id: "inventory", icon: Leaf, path: "/inventory" },
+    { id: "inventory", icon: Wheat, path: "/inventory" },
     { id: "scan", icon: ScanLine, path: "/scan" },
     { id: "resources", icon: BookOpen, path: "/resources" },
     { id: "profile", icon: User, path: "/profile" },

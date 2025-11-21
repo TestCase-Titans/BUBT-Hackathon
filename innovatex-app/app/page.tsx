@@ -8,7 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { ReactLenis, useLenis } from "lenis/react";
 import { useApp } from "@/context/AppContext";
-import { Leaf, ArrowDown, ScanLine, Box, Sparkles } from "lucide-react";
+import { Wheat, ArrowDown, ScanLine, Box, Sparkles } from "lucide-react";
 import { image } from "framer-motion/client";
 
 // Register GSAP plugins
@@ -49,7 +49,7 @@ const Navbar = () => {
     >
       <div className="flex items-center gap-2">
         <div className="w-10 h-10 bg-[#D4FF47] rounded-full flex items-center justify-center text-[#0A3323]">
-          <Leaf size={20} strokeWidth={2.5} />
+          <Wheat size={20} strokeWidth={2.5} />
         </div>
         <span className="text-xl font-serif font-bold tracking-tight">
           Eco-Loop
@@ -167,7 +167,7 @@ const Hero = () => {
             The operating system for your kitchen. Track inventory, reduce
             waste, and automate your grocery cycle with AI-driven intelligence.
           </p>
-          
+
           {/* --- ANIMATED SCROLL BUTTON --- */}
           <div className="mt-8 md:mt-0">
             <motion.a
@@ -175,7 +175,10 @@ const Hero = () => {
               onClick={(e) => {
                 e.preventDefault();
                 // Simple logic to scroll down 1 viewport height
-                window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+                window.scrollTo({
+                  top: window.innerHeight,
+                  behavior: "smooth",
+                });
               }}
               className="flex items-center gap-4 group cursor-pointer"
               whileHover="hover"
@@ -183,16 +186,20 @@ const Hero = () => {
               <div className="relative w-14 h-14 flex items-center justify-center">
                 {/* 1. Static Background Circle */}
                 <div className="absolute inset-0 rounded-full border border-[#F3F6F4]/20 group-hover:border-[#D4FF47] transition-colors duration-300" />
-                
+
                 {/* 2. Animated Spinning Dashed Ring (The Loop) */}
-                <motion.div 
+                <motion.div
                   className="absolute inset-0 rounded-full border border-dashed border-[#D4FF47]/60"
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  transition={{
+                    duration: 10,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
                 />
 
                 {/* 3. Hover Fill Effect */}
-                <motion.div 
+                <motion.div
                   className="absolute inset-0 rounded-full bg-[#D4FF47]"
                   initial={{ scale: 0 }}
                   variants={{ hover: { scale: 1 } }}
@@ -202,14 +209,14 @@ const Hero = () => {
                 {/* 4. The Arrow Icon */}
                 <motion.div
                   className="relative z-10 text-[#F3F6F4] group-hover:text-[#0A3323] transition-colors duration-300"
-                  animate={{ 
-                    x: [0, 3, 0], 
-                    y: [0, -3, 0] 
+                  animate={{
+                    x: [0, 3, 0],
+                    y: [0, -3, 0],
                   }}
-                  transition={{ 
-                    duration: 2, 
-                    repeat: Infinity, 
-                    ease: "easeInOut" 
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
                   }}
                 >
                   <ArrowDown size={24} />
@@ -217,22 +224,22 @@ const Hero = () => {
               </div>
 
               <div className="flex flex-col overflow-hidden h-5">
-                 <motion.span 
-                    className="text-[#F3F6F4] text-sm uppercase tracking-widest group-hover:text-[#D4FF47] transition-colors duration-300"
-                    variants={{
-                      hover: { y: -20 }
-                    }}
-                 >
-                   Scroll to explore
-                 </motion.span>
-                 <motion.span 
-                    className="text-[#D4FF47] text-sm uppercase tracking-widest absolute translate-y-5"
-                    variants={{
-                      hover: { y: 0 }
-                    }}
-                 >
-                   Let's Go
-                 </motion.span>
+                <motion.span
+                  className="text-[#F3F6F4] text-sm uppercase tracking-widest group-hover:text-[#D4FF47] transition-colors duration-300"
+                  variants={{
+                    hover: { y: -20 },
+                  }}
+                >
+                  Scroll to explore
+                </motion.span>
+                <motion.span
+                  className="text-[#D4FF47] text-sm uppercase tracking-widest absolute translate-y-5"
+                  variants={{
+                    hover: { y: 0 },
+                  }}
+                >
+                  Let's Go
+                </motion.span>
               </div>
             </motion.a>
           </div>
@@ -445,10 +452,7 @@ const Split = ({
   return (
     <span className={className}>
       {words.map((word, wordIndex) => (
-        <span
-          key={wordIndex}
-          className="inline-block whitespace-nowrap"
-        >
+        <span key={wordIndex} className="inline-block whitespace-nowrap">
           {word.split("").map((char, charIndex) => (
             <span
               key={charIndex}
@@ -658,7 +662,6 @@ const Footer = () => {
 
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:auto justify-center gap-20 mb-20">
-          
           <div className="max-w-2xl mx-auto">
             <h3 className="text-4xl md:text-6xl font-serif leading-tight mb-8 lg:text-center">
               Ready to close the loop <br />
@@ -667,7 +670,7 @@ const Footer = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-10 lg:gap-16 w-full lg:w-auto lg:text-center ">
-            <div className="flex flex-col gap-6" >
+            <div className="flex flex-col gap-6">
               <h4 className="text-xs uppercase tracking-widest text-[#D4FF47] mb-2">
                 Platform
               </h4>
@@ -716,7 +719,7 @@ export default function LandingPage() {
         <FeaturesHorizontal />
         <Manifesto />
         <Impact />
-        
+
         <Footer />
       </main>
     </ReactLenis>
