@@ -16,7 +16,8 @@ import {
   MapPin,
   Sparkles,
   Heart,
-  Users // Added Icons
+  Users,
+  Utensils // [NEW] Added Icon
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
@@ -299,7 +300,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-1 space-y-6">
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
               
-              {/* --- NEW: Community Hub Card --- */}
+              {/* Community Hub Card */}
               <Link href="/community" className="col-span-2">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -333,7 +334,40 @@ export default function DashboardPage() {
                 </motion.div>
               </Link>
               
-              {/* WEEKLY INSIGHT (Moved below Community) */}
+              {/* --- [NEW] MEAL PLAN CARD --- */}
+              <Link href="/meal-plan" className="col-span-2">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-[#FFF8E1] p-6 rounded-3xl shadow-sm border border-[#FFE082]/20 flex flex-col justify-between h-40 relative overflow-hidden cursor-pointer group"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#FFD54F] rounded-full blur-3xl opacity-20 -translate-y-10 translate-x-10 group-hover:opacity-30 transition-opacity" />
+                  
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Utensils size={18} className="text-[#B7791F]" />
+                      <span className="text-xs font-bold text-[#B7791F] uppercase tracking-wider">
+                        What&apos;s for Dinner?
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-serif font-bold text-[#0A3323] leading-tight">
+                      Generate Your<br />
+                      <span className="text-[#B7791F]">Zero-Waste Menu</span>
+                    </h3>
+                  </div>
+
+                  <div className="relative z-10 flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-1 text-xs font-bold text-[#0A3323]">
+                        <Sparkles size={12} className="text-[#B7791F]" />
+                        <span>AI Powered</span>
+                    </div>
+                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm">
+                        <ArrowRight size={14} className="text-[#B7791F]" />
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+
+              {/* WEEKLY INSIGHT */}
               <div className="bg-[#E8F5E9] p-6 rounded-3xl border border-[#0A3323]/5 lg:col-span-1 col-span-2 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#D4FF47] opacity-10 rounded-full blur-2xl -translate-y-10 translate-x-10"></div>
                 <div className="flex items-center gap-3 mb-4 relative z-10">
@@ -345,7 +379,7 @@ export default function DashboardPage() {
                   </h3>
                 </div>
                 <p className="text-sm text-[#0A3323]/80 leading-relaxed mb-4 relative z-10 italic">
-                  "{loading ? "Generating insights..." : stats.weeklyInsight}"
+                  &quot;{loading ? "Generating insights..." : stats.weeklyInsight}&quot;
                 </p>
               </div>
 
