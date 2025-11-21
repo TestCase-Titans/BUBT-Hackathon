@@ -26,17 +26,25 @@ export const authConfig = {
         return false;
       }
 
+      // [NEW] Protect Admin Route
+      if (nextUrl.pathname.startsWith('/admin')) {
+        if (auth?.user && (auth.user as any).isAdmin) return true;
+        return false; // Redirect if not admin
+      }
+
       return true;
     },
     async session({ session, token }) {
       if (session.user && token.sub) {
         (session.user as any).id = token.sub;
+        (session.user as any).isAdmin = token.isAdmin; // [NEW] Pass to client
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
+        token.isAdmin = (user as any).isAdmin; // [NEW] Persist in token
       }
       return token;
     }

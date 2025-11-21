@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import dbConnect from "@/lib/db";
-import { User } from "@/lib/models";
+import { User, SuperAdmin } from "@/lib/models"; // [NEW] Import SuperAdmin
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 
@@ -28,12 +28,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
 
         if (passwordsMatch) {
+          // [NEW] Check for Admin privileges
+          const adminRecord = await SuperAdmin.findOne({ userId: user._id });
+
           return {
             id: user._id.toString(),
             name: user.name,
             email: user.email,
-            // --- FIX: Pass the image to the session ---
             image: user.image,
+            isAdmin: !!adminRecord, // [NEW] Add flag
           };
         }
 

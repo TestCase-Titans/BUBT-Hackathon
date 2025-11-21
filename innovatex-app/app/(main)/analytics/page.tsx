@@ -8,11 +8,12 @@ import {
   TrendingDown, 
   Users, 
   AlertTriangle,
-  Wallet
+  Wallet,
+  Globe // Added Globe icon
 } from "lucide-react";
-import ConsumptionChart from "@/components/ConsumptionChart"; //
-import WeeklyPieChart from "@/components/WeeklyPieChart"; //
-import PageWrapper from "@/components/PageWrapper"; //
+import ConsumptionChart from "@/components/ConsumptionChart"; 
+import WeeklyPieChart from "@/components/WeeklyPieChart"; 
+import PageWrapper from "@/components/PageWrapper"; 
 
 export default function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -38,7 +39,8 @@ export default function AnalyticsPage() {
 
   const forecast = analyticsData?.wasteForecast || {
     projectedCost: 0,
-    communityAvgCost: 0,
+    communityAvgCost: 50, // Default score
+    userScore: 0,
     status: "Good",
     analysis: "Gathering data..."
   };
@@ -73,7 +75,7 @@ export default function AnalyticsPage() {
           <div className="lg:col-span-3">
             <h3 className="text-xl font-bold text-[#0A3323] mb-4 flex items-center gap-2">
               <Wallet className="text-[#0A3323]" size={20} /> 
-              Waste Projection (AI Model)
+              Waste Projection & Impact
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -97,10 +99,10 @@ export default function AnalyticsPage() {
                 </p>
               </div>
 
-              {/* Card B: Community Comparison (FIXED TERMINOLOGY) */}
+              {/* Card B: Community Comparison (SDG SCORE BASED) */}
               <div className={`p-6 rounded-3xl border shadow-sm ${forecast.status === "Good" ? "bg-[#E8F5E9] border-green-100" : "bg-[#FFF8E1] border-yellow-200"}`}>
                 <p className={`text-sm uppercase tracking-wider font-bold mb-2 flex items-center gap-2 ${forecast.status === "Good" ? "text-green-800" : "text-yellow-800"}`}>
-                  <Users size={16} /> Community Comparison
+                  <Globe size={16} /> Community Impact
                 </p>
                 
                 {loading ? (
@@ -108,14 +110,14 @@ export default function AnalyticsPage() {
                 ) : (
                   <>
                     <div className="flex items-end gap-2">
-                      {/* Changed "Higher" to "Above Avg" and "Better" to "Below Avg" to be unambiguous */}
+                      {/* Higher Score is Better -> "Above Avg" */}
                       <span className={`text-3xl font-serif font-bold ${forecast.status === "Good" ? "text-green-900" : "text-yellow-900"}`}>
-                        {forecast.status === "Good" ? "Below Avg" : "Above Avg"}
+                        {forecast.status === "Good" ? "Above Avg" : "Below Avg"}
                       </span>
                     </div>
                     <p className={`text-xs mt-2 ${forecast.status === "Good" ? "text-green-700" : "text-yellow-700"}`}>
-                       Avg. neighbor wastes <strong>৳{forecast.communityAvgCost}</strong>. 
-                       {forecast.status === "Good" ? " You are saving money!" : " Try to reduce waste."}
+                       Your Impact Score: <strong>{forecast.userScore}</strong> (Avg: {forecast.communityAvgCost}). 
+                       {forecast.status === "Good" ? " Leading the change!" : " Improve your score."}
                     </p>
                   </>
                 )}

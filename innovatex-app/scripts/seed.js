@@ -12,7 +12,7 @@ if (!MONGODB_URI) {
   );
 }
 
-// --- 1. SCHEMAS (Updated for Ranklist Support) ---
+// --- 1. SCHEMAS ---
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -22,8 +22,8 @@ const UserSchema = new mongoose.Schema({
   dietaryPreferences: [String],
   budgetRange: String,
   location: String,
-  image: String, // Needed for Avatar
-  impactScore: { type: Number, default: 0 }, // Needed for Ranking
+  image: String, 
+  impactScore: { type: Number, default: 0 }, 
 });
 
 const ActionLogSchema = new mongoose.Schema(
@@ -66,13 +66,17 @@ const FoodItemSchema = new mongoose.Schema({
   imageUrl: String,
 });
 
+// [NEW] SuperAdmin Schema for Seeding
+const SuperAdminSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  role: { type: String, default: "superadmin" },
+});
+
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
-const ActionLog =
-  mongoose.models.ActionLog || mongoose.model("ActionLog", ActionLogSchema);
-const Resource =
-  mongoose.models.Resource || mongoose.model("Resource", ResourceSchema);
-const FoodItem =
-  mongoose.models.FoodItem || mongoose.model("FoodItem", FoodItemSchema);
+const ActionLog = mongoose.models.ActionLog || mongoose.model("ActionLog", ActionLogSchema);
+const Resource = mongoose.models.Resource || mongoose.model("Resource", ResourceSchema);
+const FoodItem = mongoose.models.FoodItem || mongoose.model("FoodItem", FoodItemSchema);
+const SuperAdmin = mongoose.models.SuperAdmin || mongoose.model("SuperAdmin", SuperAdminSchema);
 
 // --- 2. STATIC DATA ---
 
