@@ -1038,7 +1038,7 @@ async function main() {
       dietaryPreferences: ["Halal"],
       budgetRange: "Medium",
       location: "Dhaka",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix", // Demo Avatar
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=abp", // Demo Avatar
       impactScore: 75, // Initial Score
     });
 
