@@ -11,7 +11,14 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
-import { Loader2, Sparkles, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  AlertCircle,
+  ArrowUp,
+  ArrowDown,
+  Check,
+} from "lucide-react";
 
 interface ConsumptionChartProps {
   preloadedData?: any;
@@ -22,12 +29,14 @@ export default function ConsumptionChart({
 }: ConsumptionChartProps) {
   const [data, setData] = useState<any[]>([]);
   const [prediction, setPrediction] = useState("");
+  const [imbalances, setImbalances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (preloadedData) {
       setData(preloadedData.chartData || []);
       setPrediction(preloadedData.prediction || "");
+      setImbalances(preloadedData.imbalances || []);
       setLoading(false);
     } else {
       fetch("/api/analytics")
@@ -35,6 +44,7 @@ export default function ConsumptionChart({
         .then((res) => {
           if (res.chartData) setData(res.chartData);
           if (res.prediction) setPrediction(res.prediction);
+          if (res.imbalances) setImbalances(res.imbalances);
         })
         .catch((err) => console.error(err))
         .finally(() => setLoading(false));
@@ -45,7 +55,7 @@ export default function ConsumptionChart({
     return (
       <div className="h-64 w-full flex flex-col items-center justify-center text-[#0A3323]/50">
         <Loader2 className="animate-spin mb-2" size={32} />
-        <p className="text-sm font-medium">Calculating caloric intake...</p>
+        <p className="text-sm font-medium">Analyzing nutritional data...</p>
       </div>
     );
 
@@ -74,13 +84,14 @@ export default function ConsumptionChart({
     "Dairy Protein": "#3B82F6",
     Dairy: "#60A5FA",
     Snack: "#8B5CF6",
+    Fats: "#FCD34D",
     General: "#94A3B8",
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* AI Insight Card */}
-      <div className="bg-gradient-to-r from-[#0A3323] to-[#144532] p-1 rounded-3xl shadow-lg">
+      <div className="bg-gradient-to-r from-[#0A3323] to-[#144532] p-1 rounded-3xl shadow-lg transform hover:scale-[1.01] transition-transform duration-300">
         <div className="bg-[#0A3323] rounded-[22px] p-6 text-[#F3F6F4] relative overflow-hidden">
           <div className="flex items-start gap-4 relative z-10">
             <div className="p-3 bg-[#D4FF47] rounded-full shadow-md shadow-[#D4FF47]/20 text-[#0A3323]">
@@ -101,12 +112,38 @@ export default function ConsumptionChart({
 
       {/* Chart Section */}
       <div className="bg-white p-6 lg:p-8 rounded-3xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h3 className="text-xl font-bold text-[#0A3323]">Caloric Intake</h3>
-            <p className="text-sm text-gray-500">
-              Weekly breakdown by category (kCal)
-            </p>
+            <h3 className="text-xl font-bold text-[#0A3323]">
+              Avg. Caloric Intake
+            </h3>
+            <p className="text-sm text-gray-500">Per household member (kCal)</p>
+          </div>
+
+          {/* Imbalance Badges */}
+          <div className="flex flex-wrap gap-2">
+            {imbalances.length === 0 && totalCalories > 0 && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
+                <Check size={12} /> Balanced Diet
+              </span>
+            )}
+            {imbalances.map((item, idx) => (
+              <span
+                key={idx}
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${
+                  item.status === "OVER"
+                    ? "bg-red-50 text-red-600 border-red-100"
+                    : "bg-amber-50 text-amber-600 border-amber-100"
+                }`}
+              >
+                {item.status === "OVER" ? (
+                  <ArrowUp size={12} />
+                ) : (
+                  <ArrowDown size={12} />
+                )}
+                {item.status === "OVER" ? "Limit" : "Boost"} {item.category}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -142,7 +179,6 @@ export default function ConsumptionChart({
                   tickLine={false}
                   tick={{ fill: "#64748b", fontSize: 12 }}
                 />
-                {/* FIX: Formatter now includes 'name' (category) */}
                 <Tooltip
                   cursor={{ fill: "#F3F6F4" }}
                   contentStyle={{
@@ -157,6 +193,11 @@ export default function ConsumptionChart({
                     `${value} kCal`,
                     name,
                   ]}
+                  labelStyle={{
+                    color: "#D4FF47",
+                    marginBottom: "0.5rem",
+                    fontWeight: "bold",
+                  }}
                 />
                 <Legend
                   iconType="circle"

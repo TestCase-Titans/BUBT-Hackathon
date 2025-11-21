@@ -1,26 +1,36 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import { ActionLog } from "@/lib/models";
+import { ActionLog, User } from "@/lib/models";
 import { auth } from "@/lib/auth";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
-// Hackathon Heuristic: Calorie estimates per unit (usually kg or L)
+// Estimated Calories per Unit (e.g., kg, L, or pack)
 const CALORIE_ESTIMATES: Record<string, number> = {
-  Grain: 3500, // ~350 kCal/100g -> 3500/kg
-  Vegetable: 400, // Avg veg
+  Grain: 3500, // ~350 kCal/100g -> 3500/kg (Rice/Flour)
+  Vegetable: 400, // Avg mixed veggies
   Fruit: 500, // Avg fruit
-  "Meat Protein": 2000,
+  "Meat Protein": 2000, // Chicken/Beef avg
   "Fish Protein": 1500,
-  "Dairy Protein": 150, // eggs (per unit/dozen approx normalized) or milk
-  Dairy: 700,
+  "Dairy Protein": 150, // Per unit (egg?) or adjusted logic below
+  Dairy: 700, // Milk/Curd
   Fats: 8800, // Oil
-  Snack: 500, // Per pack avg
-  Beverage: 100,
+  Snack: 500, // Per pack
+  Beverage: 400, // Sugary drinks
   Spices: 0,
   General: 200,
+};
+
+// Daily Calorie Thresholds (Per Person) for "Health Logic"
+const THRESHOLDS: Record<string, { min?: number; max?: number }> = {
+  Grain: { max: 1200 }, // Too much rice?
+  Vegetable: { min: 200 }, // Eat your veggies!
+  Fruit: { min: 100 },
+  "Meat Protein": { max: 800 },
+  Snack: { max: 250 }, // Limit junk
+  Fats: { max: 400 },
 };
 
 export async function GET() {
@@ -41,7 +51,11 @@ export async function GET() {
   const userId = new mongoose.Types.ObjectId((session.user as any).id);
 
   try {
-    // 1. Fetch Raw Consumption Logs (We process calories in JS for flexibility)
+    // 1. Fetch User to get Household Size
+    const userProfile = await User.findById(userId);
+    const householdSize = userProfile?.householdSize || 1;
+
+    // 2. Fetch Consumption Logs (Last 30 Days)
     const rawConsumption = await ActionLog.aggregate([
       {
         $match: {
@@ -52,51 +66,82 @@ export async function GET() {
           },
         },
       },
-      { $unwind: "$category" }, // Handle items with multiple categories
+      { $unwind: "$category" },
       {
         $project: {
-          dayOfWeek: { $dayOfWeek: "$createdAt" }, // 1=Sun, 7=Sat
+          dayOfWeek: { $dayOfWeek: "$createdAt" },
           category: 1,
-          quantityChanged: 1, // Important: We need the amount, not just count
+          quantityChanged: 1,
           unit: 1,
         },
       },
     ]);
 
-    // 2. Process Data: Group by Day & Category -> Sum Calories
-    const processedStats: Record<string, any> = {}; // Key: "DayIndex-Category"
+    // 3. Process Data: Calculate Calories & Averages
+    const processedStats: Record<string, any> = {}; // Chart Data map
+    const categoryTotalCalories: Record<string, number> = {}; // For analysis
 
-    let totalCalories = 0;
-    const categoryCalories: Record<string, number> = {};
+    let totalCaloriesConsumed = 0;
 
     rawConsumption.forEach((log) => {
       const cat = log.category;
-      const qty = log.quantityChanged || 1; // Default to 1 if missing
+      const qty = log.quantityChanged || 1;
 
-      // Calculate Calories
-      const factor = CALORIE_ESTIMATES[cat] || 200; // Default fallback
-      // Simple normalization: If unit is 'g' or 'ml', divide by 1000 (assuming estimates are per kg/L)
+      // Normalization (Simple heuristic)
+      const factor = CALORIE_ESTIMATES[cat] || 200;
       const normalizedQty =
         log.unit === "g" || log.unit === "ml" ? qty / 1000 : qty;
-      const calories = Math.round(normalizedQty * factor);
 
-      // Aggregate for Chart
+      const totalCal = Math.round(normalizedQty * factor);
+
+      // --- KEY CHANGE: Average per Household Member ---
+      const calPerPerson = Math.round(totalCal / householdSize);
+
+      // Add to Chart Data (Day-Category bucket)
       const key = `${log.dayOfWeek}-${cat}`;
       if (!processedStats[key]) processedStats[key] = 0;
-      processedStats[key] += calories;
+      processedStats[key] += calPerPerson;
 
-      // Aggregate for Metrics
-      categoryCalories[cat] = (categoryCalories[cat] || 0) + calories;
-      totalCalories += calories;
+      // Add to Totals
+      categoryTotalCalories[cat] =
+        (categoryTotalCalories[cat] || 0) + calPerPerson;
+      totalCaloriesConsumed += calPerPerson;
     });
 
-    // 3. Format Data for Recharts
+    // 4. Determine Over/Under Consumption
+    const imbalanceReport: {
+      category: string;
+      status: "OVER" | "UNDER";
+      diff: number;
+    }[] = [];
+    const dailyAvgTotal = totalCaloriesConsumed / 30; // Approx daily avg over the period
+
+    Object.entries(categoryTotalCalories).forEach(([cat, totalMonthCal]) => {
+      const dailyAvg = totalMonthCal / 30;
+      const rules = THRESHOLDS[cat];
+
+      if (rules) {
+        if (rules.max && dailyAvg > rules.max) {
+          imbalanceReport.push({
+            category: cat,
+            status: "OVER",
+            diff: Math.round(dailyAvg - rules.max),
+          });
+        } else if (rules.min && dailyAvg < rules.min) {
+          imbalanceReport.push({
+            category: cat,
+            status: "UNDER",
+            diff: Math.round(rules.min - dailyAvg),
+          });
+        }
+      }
+    });
+
+    // 5. Format Chart Data
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const chartData = days.map((day, index) => {
       const dayIndex = index + 1;
       const dataPoint: any = { name: day };
-
-      // Find all categories for this day
       Object.keys(processedStats).forEach((key) => {
         const [d, c] = key.split("-");
         if (parseInt(d) === dayIndex) {
@@ -106,21 +151,21 @@ export async function GET() {
       return dataPoint;
     });
 
-    // 4. Calculate Metrics (Top Category by Calories)
+    // 6. Calculate Metrics for UI Cards
     let topCategory = { name: "N/A", percentage: 0 };
     let maxVal = 0;
-    Object.entries(categoryCalories).forEach(([cat, cal]) => {
+    Object.entries(categoryTotalCalories).forEach(([cat, cal]) => {
       if (cal > maxVal) {
         maxVal = cal;
         topCategory.name = cat;
       }
     });
-    if (totalCalories > 0) {
-      topCategory.percentage = Math.round((maxVal / totalCalories) * 100);
+    if (totalCaloriesConsumed > 0) {
+      topCategory.percentage = Math.round(
+        (maxVal / totalCaloriesConsumed) * 100
+      );
     }
 
-    // 5. Goal Progress (Simple Consumption Rate based on Count is safer for waste)
-    // (Keeping existing waste aggregation for the "Waste vs Eat" ratio as calories wasted is harder to verify)
     const wasteStats = await ActionLog.aggregate([
       {
         $match: {
@@ -133,26 +178,40 @@ export async function GET() {
       },
       { $group: { _id: null, count: { $sum: 1 } } },
     ]);
-    const totalWasteCount = wasteStats[0]?.count || 0;
-    const totalConsumeCount = rawConsumption.length; // distinct actions
-    const totalActions = totalConsumeCount + totalWasteCount;
     const goalProgress =
-      totalActions === 0
+      rawConsumption.length + (wasteStats[0]?.count || 0) === 0
         ? 0
-        : Math.round((totalConsumeCount / totalActions) * 100);
+        : Math.round(
+            (rawConsumption.length /
+              (rawConsumption.length + (wasteStats[0]?.count || 0))) *
+              100
+          );
 
-    // 6. AI Prediction (Updated Context)
-    let prediction = "Log meals to get calorie insights.";
-    if (totalCalories > 0) {
+    // 7. AI Prediction (Targeted Recommendation)
+    let prediction = "Log more meals to enable smart insights.";
+    if (totalCaloriesConsumed > 0) {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      // Construct a specific prompt based on the imbalance report
+      const imbalanceText =
+        imbalanceReport.length > 0
+          ? imbalanceReport
+              .map((i) => `${i.status} consumed ${i.category}`)
+              .join(", ")
+          : "Balanced diet";
+
       const prompt = `
-        User Nutrition Data (30 Days):
-        - Total Calories Consumed: ${totalCalories}
+        Analysis Data (Avg per person):
+        - Total Daily Calories: ${Math.round(dailyAvgTotal)}
         - Top Source: ${topCategory.name}
-        - Waste Events: ${totalWasteCount}
-        Task: Give 1 health/sustainability tip based on this. Max 15 words.
+        - Imbalances Detected: ${imbalanceText}
+        
+        Task: Give ONE specific, actionable suggestion to fix the imbalance. 
+        Format: "Because you eat too much [X], try [Y]." or "Boost your [X] intake by [Action]."
+        Max 15 words. No generic advice.
       `;
+
       const result = await model.generateContent(prompt);
       prediction = result.response.text().replace(/\*/g, "").trim();
     }
@@ -161,6 +220,7 @@ export async function GET() {
       chartData,
       prediction,
       metrics: { topCategory, goalProgress },
+      imbalances: imbalanceReport, // Pass this to UI
     });
   } catch (error) {
     console.error("Analytics Error:", error);
