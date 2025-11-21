@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import { Inventory, ActionLog } from "@/lib/models"; // Import ActionLog
+import { Inventory, ActionLog } from "@/lib/models"; 
 import { auth } from "@/lib/auth";
 
 export async function GET() {
@@ -32,6 +32,10 @@ export async function GET() {
         expiryDays: expiryDays,
         expirationDate: item.expirationDate, 
         status: item.status,
+        // --- New Risk Data ---
+        riskScore: item.riskScore || 0,
+        riskLabel: item.riskLabel || "Safe",
+        riskFactor: item.riskFactor || "",
       };
     });
 
@@ -69,7 +73,11 @@ export async function POST(request: Request) {
       costPerUnit: body.costPerUnit,
       imageUrl: body.imageUrl || body.image, 
       status: 'ACTIVE',
-      source: 'MANUAL' 
+      source: 'MANUAL',
+      // Initialize default risk
+      riskScore: 0,
+      riskLabel: "Safe",
+      lastRiskAnalysis: new Date(0) // Force analysis on next check
     });
 
     await ActionLog.create({

@@ -13,14 +13,17 @@ import {
   AlertTriangle,
   ArrowLeft,
   Hash,
-  Loader2 // Added Loader2
+  Loader2,
+  ShieldAlert,
+  ShieldCheck,
+  ThermometerSun,
+  Info
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
 import PageWrapper from "@/components/PageWrapper";
 import { useNotification } from "@/context/NotificationContext";
 
-// Updated Categories to match Scan Page + Canned/All
 const CATEGORIES = [
   "All",
   "Meat Protein",
@@ -38,7 +41,6 @@ const CATEGORIES = [
   "General"
 ];
 
-// Helper component to render image or emoji safely
 const ItemIcon = ({ src, alt, className, size = "text-3xl" }: { src: string, alt: string, className: string, size?: string }) => {
   const isUrl = src && (src.startsWith("http") || src.startsWith("/"));
   
@@ -61,6 +63,14 @@ const ItemIcon = ({ src, alt, className, size = "text-3xl" }: { src: string, alt
   );
 };
 
+// Helper for Risk Badge Styling
+const getRiskBadge = (score: number, label: string) => {
+  if (score >= 80 || label === 'Critical') return { color: "bg-red-100 text-red-700 border-red-200", icon: <ShieldAlert size={12}/>, bar: 'bg-red-500' };
+  if (score >= 50 || label === 'High') return { color: "bg-orange-100 text-orange-700 border-orange-200", icon: <ThermometerSun size={12}/>, bar: 'bg-orange-500' };
+  if (score >= 30 || label === 'Medium') return { color: "bg-amber-100 text-amber-700 border-amber-200", icon: <Info size={12}/>, bar: 'bg-amber-500' };
+  return { color: "bg-green-100 text-green-700 border-green-200", icon: <ShieldCheck size={12}/>, bar: 'bg-green-500' };
+};
+
 export default function InventoryPage() {
   const { inventory, setInventory } = useApp();
   const [filter, setFilter] = useState("All");
@@ -75,9 +85,8 @@ export default function InventoryPage() {
   const [foodDatabase, setFoodDatabase] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingFoods, setLoadingFoods] = useState(false);
-  
-  // Loading State for Actions
-  const [isSubmitting, setIsSubmitting] = useState(false); // <--- NEW STATE
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Configuration State
   const [configuringFood, setConfiguringFood] = useState<any>(null);
@@ -88,24 +97,52 @@ export default function InventoryPage() {
     cost: 0,
   });
 
-  // Action Form (Consume/Waste)
   const [actionForm, setActionForm] = useState({
     quantity: 0,
-    type: "CONSUME" // or WASTE
+    type: "CONSUME" 
   });
 
-  // Ref for horizontal scrolling
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Horizontal Scroll Logic (Wheel to Scroll)
+  // --- 1. Silent Risk Analysis on Mount ---
+  useEffect(() => {
+    const runRiskAnalysis = async () => {
+      try {
+        setIsAnalyzing(true);
+        // Fire API call
+        const res = await fetch('/api/predictions/risk', { method: 'POST' });
+        const data = await res.json();
+        
+        // If backend updated records, refresh our local state
+        if (data.success && data.updated > 0) {
+           refreshInventory();
+        }
+      } catch (e) {
+        console.error("Background risk check failed", e);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+    
+    // Only run if we have items
+    if (inventory && inventory.length > 0) {
+        runRiskAnalysis();
+    }
+  }, [inventory.length]); // Run when inventory length changes (e.g. initial load)
+
+  const refreshInventory = async () => {
+      const res = await fetch("/api/inventory");
+      if (res.ok) {
+          const data = await res.json();
+          setInventory(data);
+      }
+  };
+
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (container) {
       const handleWheel = (e: WheelEvent) => {
-        // If scrolling vertically, translate to horizontal
         if (e.deltaY !== 0) {
-          // Prevent default vertical scroll only if we can scroll horizontally
-          // or just always map it for this container
           e.preventDefault();
           container.scrollLeft += e.deltaY;
         }
@@ -115,7 +152,6 @@ export default function InventoryPage() {
     }
   }, []);
 
-  // Fetch Master Database
   useEffect(() => {
     if (isAddModalOpen && foodDatabase.length === 0) {
       setLoadingFoods(true);
@@ -132,7 +168,6 @@ export default function InventoryPage() {
     }
   }, [isAddModalOpen]);
 
-  // Reset config when modal closes
   useEffect(() => {
     if (!isAddModalOpen) {
         setConfiguringFood(null);
@@ -149,6 +184,12 @@ export default function InventoryPage() {
           const categories = Array.isArray(item.category) ? item.category : [item.category];
           return categories.includes(filter) && item.status === 'ACTIVE' && item.quantity > 0;
       });
+
+  // --- 2. Smart Sort by Risk Score ---
+  const sortedItems = [...filteredItems].sort((a: any, b: any) => {
+    // Sort by Risk Score (Highest first)
+    return (b.riskScore || 0) - (a.riskScore || 0);
+  });
 
   const handleSelectFood = (foodItem: any) => {
     setConfiguringFood(foodItem);
@@ -186,20 +227,15 @@ export default function InventoryPage() {
 
       if (res.ok) {
         const savedItem = await res.json();
-        
-        const formatted = {
-          id: savedItem._id,
-          name: savedItem.name,
-          category: savedItem.category,
-          quantity: savedItem.quantity,
-          unit: savedItem.unit,
-          image: savedItem.imageUrl || "📦",
-          expiryDays: addItemForm.expiryDays,
-          status: savedItem.status,
-          costPerUnit: savedItem.costPerUnit
-        };
-        
-        setInventory((prev: any) => [...prev, formatted]);
+        setInventory((prev: any) => [...prev, {
+            ...savedItem, 
+            id: savedItem._id, 
+            image: savedItem.imageUrl || "📦", 
+            expiryDays: addItemForm.expiryDays,
+            // Default new item risk
+            riskScore: 0,
+            riskLabel: "Safe"
+        }]);
         setIsAddModalOpen(false);
         setConfiguringFood(null);
         notify(`${newItem.name} added to pantry`, "success");
@@ -281,9 +317,12 @@ export default function InventoryPage() {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
           <div>
-            <h2 className="text-3xl lg:text-4xl font-serif text-[#0A3323]">
-              My Pantry
-            </h2>
+            <div className="flex items-center gap-2">
+                <h2 className="text-3xl lg:text-4xl font-serif text-[#0A3323]">
+                    My Pantry
+                </h2>
+                {isAnalyzing && <Loader2 className="animate-spin text-[#D4FF47]" size={20} />}
+            </div>
             <p className="text-gray-500">Manage your food and reduce waste.</p>
           </div>
           <button
@@ -294,14 +333,11 @@ export default function InventoryPage() {
           </button>
         </div>
 
-        {/* Filters with Horizontal Scroll Animation */}
+        {/* Filters */}
         <div 
           ref={scrollContainerRef}
           className="p-5 flex gap-2 overflow-x-auto pb-4 lg:pb-6 cursor-grab active:cursor-grabbing no-scrollbar"
-          style={{ 
-            scrollbarWidth: 'none', 
-            msOverflowStyle: 'none' 
-          }}
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {CATEGORIES.map((cat) => (
             <motion.button
@@ -322,7 +358,7 @@ export default function InventoryPage() {
 
         {/* Inventory Grid */}
         <div className="flex-1">
-          {filteredItems.length === 0 ? (
+          {sortedItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/50">
               <p className="font-medium">No items found.</p>
               <p className="text-xs mt-2">
@@ -332,73 +368,65 @@ export default function InventoryPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
               <AnimatePresence mode="popLayout">
-                {filteredItems.map((item: any) => (
-                  <motion.div
-                    key={item.id || item._id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    onClick={() => setSelectedItem(item)}
-                    className={`${
-                      THEME.glass
-                    } p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:shadow-lg hover:border-[#D4FF47]/50 transition-all border-l-4 ${
-                      item.expiryDays < 3
-                        ? "border-l-[#FF6B6B]"
-                        : "border-l-transparent"
-                    }`}
-                  >
-                    <ItemIcon 
-                        src={item.image} 
-                        alt={item.name} 
-                        className="w-16 h-16 rounded-2xl flex-shrink-0"
-                        size="text-3xl"
-                    />
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-[#0A3323] truncate pr-2 text-lg">
-                          {item.name}
-                        </h3>
-                      </div>
+                {sortedItems.map((item: any) => {
+                  // Calculate Risk Badge
+                  const riskStyle = getRiskBadge(item.riskScore || 0, item.riskLabel || "Safe");
+                  
+                  return (
+                    <motion.div
+                      key={item.id || item._id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      onClick={() => setSelectedItem(item)}
+                      className={`${THEME.glass} p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:shadow-lg hover:border-[#D4FF47]/50 transition-all relative overflow-hidden group border border-white/40`}
+                    >
+                      {/* --- NEW: Risk Indicator Bar --- */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${riskStyle.bar}`} />
 
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-mono bg-white border border-gray-100 px-2 py-0.5 rounded-md text-gray-600">
-                          {Number(item.quantity).toFixed(1).replace(/\.0$/, '')} {item.unit}
-                        </span>
-                        {item.costPerUnit && (
-                          <span className="text-xs text-gray-400">
-                            ৳{item.costPerUnit}/{item.unit}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex justify-between mt-3 items-center">
-                        <div className="flex items-center gap-1">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              item.expiryDays < 3
-                                ? "bg-[#FF6B6B]"
-                                : "bg-[#D4FF47]"
-                            }`}
-                          />
-                          <span
-                            className={`text-[10px] font-bold ${
-                              item.expiryDays < 3
-                                ? "text-[#FF6B6B]"
-                                : "text-gray-400"
-                            }`}
-                          >
-                            {item.expiryDays} days left
-                          </span>
+                      <ItemIcon 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-16 h-16 rounded-2xl flex-shrink-0 ml-2" // Added ml-2 for bar
+                          size="text-3xl"
+                      />
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-bold text-[#0A3323] truncate pr-2 text-lg">
+                            {item.name}
+                          </h3>
                         </div>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-wide">
-                          {Array.isArray(item.category) ? item.category[0] : item.category}
-                        </span>
+
+                        {/* --- NEW: Risk Badge & Factor --- */}
+                        <div className="flex items-center gap-2 mt-1 mb-1">
+                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase ${riskStyle.color}`}>
+                                {riskStyle.icon}
+                                <span>{item.riskLabel || "Safe"}</span>
+                            </div>
+                            
+                            {item.riskScore > 30 && item.riskFactor && (
+                                <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                                    {item.riskFactor}
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between mt-2 items-center">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono bg-white border border-gray-100 px-2 py-0.5 rounded-md text-gray-600">
+                                {Number(item.quantity).toFixed(1).replace(/\.0$/, '')} {item.unit}
+                            </span>
+                            <span className={`text-[10px] font-bold ${item.expiryDays < 3 ? "text-[#FF6B6B]" : "text-gray-400"}`}>
+                                {item.expiryDays} days left
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             </div>
           )}
@@ -421,6 +449,7 @@ export default function InventoryPage() {
                 exit={{ y: "100%" }}
                 className="bg-[#F3F6F4] w-full max-w-lg rounded-t-3xl lg:rounded-3xl p-6 z-10 shadow-2xl max-h-[85vh] flex flex-col"
               >
+                {/* ... (Same Add Item Modal Content) ... */}
                 <div className="flex justify-between items-center mb-6">
                     {configuringFood ? (
                         <button onClick={() => setConfiguringFood(null)} className="p-2 hover:bg-gray-200 rounded-full">
@@ -436,6 +465,7 @@ export default function InventoryPage() {
 
                 {configuringFood ? (
                     <div className="space-y-6">
+                         {/* ... Form ... */}
                         <div className="flex items-center gap-4">
                              <ItemIcon 
                                 src={configuringFood.image} 
@@ -507,7 +537,7 @@ export default function InventoryPage() {
 
                         <button 
                             onClick={handleConfirmAdd}
-                            disabled={isSubmitting} // Disable during submit
+                            disabled={isSubmitting} 
                             className="w-full bg-[#0A3323] text-[#D4FF47] py-4 rounded-xl font-bold text-lg hover:bg-[#0F4D34] transition-colors mt-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? <Loader2 className="animate-spin" /> : null}
@@ -562,7 +592,7 @@ export default function InventoryPage() {
           )}
         </AnimatePresence>
 
-        {/* --- CONSUME / WASTE ACTION MODAL --- */}
+        {/* --- CONSUME / WASTE ACTION MODAL (Unchanged) --- */}
          <AnimatePresence>
             {isActionModalOpen && selectedItem && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -599,7 +629,7 @@ export default function InventoryPage() {
                             <button onClick={() => setIsActionModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
                             <button 
                                 onClick={handleUpdateStock}
-                                disabled={isSubmitting} // Disable during submit
+                                disabled={isSubmitting} 
                                 className={`flex-1 py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 
                                     ${actionForm.type === 'CONSUME' ? 'bg-[#0A3323]' : 'bg-[#FF6B6B]'}
                                     disabled:opacity-50 disabled:cursor-not-allowed
@@ -614,7 +644,7 @@ export default function InventoryPage() {
          </AnimatePresence>
 
 
-        {/* --- ITEM DETAILS MODAL --- */}
+        {/* --- ITEM DETAILS MODAL (Updated to show Risk Info) --- */}
         <AnimatePresence>
           {selectedItem && !isActionModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -648,9 +678,17 @@ export default function InventoryPage() {
                   <h3 className="text-3xl font-serif text-[#0A3323]">
                     {selectedItem.name}
                   </h3>
-                  <span className="px-3 py-1 bg-[#E8F5E9] text-[#0A3323] text-xs font-bold rounded-full mt-2">
-                    {Array.isArray(selectedItem.category) ? selectedItem.category[0] : selectedItem.category}
-                  </span>
+                  
+                  {/* --- NEW: Big Risk Badge --- */}
+                  <div className={`mt-3 px-4 py-1 rounded-full text-sm font-bold border flex items-center gap-2 ${getRiskBadge(selectedItem.riskScore, selectedItem.riskLabel).color}`}>
+                    {getRiskBadge(selectedItem.riskScore, selectedItem.riskLabel).icon}
+                    {selectedItem.riskLabel || "Safe"} Risk ({selectedItem.riskScore}%)
+                  </div>
+                  {selectedItem.riskFactor && (
+                    <span className="text-xs text-gray-400 mt-1 italic">
+                      "{selectedItem.riskFactor}"
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
@@ -658,13 +696,7 @@ export default function InventoryPage() {
                     <div className="flex items-center gap-2 text-gray-500 mb-1 text-xs uppercase font-bold">
                       <Calendar size={14} /> Expiry
                     </div>
-                    <p
-                      className={`text-xl font-bold ${
-                        selectedItem.expiryDays < 3
-                          ? "text-[#FF6B6B]"
-                          : "text-[#0A3323]"
-                      }`}
-                    >
+                    <p className={`text-xl font-bold ${selectedItem.expiryDays < 3 ? "text-[#FF6B6B]" : "text-[#0A3323]"}`}>
                       {selectedItem.expiryDays} Days
                     </p>
                   </div>
@@ -694,7 +726,7 @@ export default function InventoryPage() {
                     </button>
                     <button
                         onClick={handleAccidentalDelete}
-                        disabled={isSubmitting} // Disable during submit
+                        disabled={isSubmitting} 
                         className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
@@ -702,9 +734,6 @@ export default function InventoryPage() {
                     </button>
                   </div>
                 </div>
-                <p className="text-center text-[10px] text-gray-400 mt-4">
-                    Use "Delete" only for accidental entries. Use "Record Waste" to track expired food.
-                </p>
               </motion.div>
             </div>
           )}
