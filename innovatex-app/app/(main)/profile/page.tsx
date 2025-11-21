@@ -36,6 +36,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false); // <--- NEW STATE
   const { notify } = useNotification();
   
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -81,6 +82,8 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
+    if(isSaving) return;
+    setIsSaving(true);
     try {
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
@@ -92,6 +95,8 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Failed to save", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -167,8 +172,20 @@ export default function ProfilePage() {
             <h2 className="text-3xl lg:text-4xl font-serif text-[#0A3323]">My Profile</h2>
             {isEditing ? (
                 <div className="flex gap-2">
-                    <button onClick={() => setIsEditing(false)} className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"><X size={20}/></button>
-                    <button onClick={handleSave} className="p-2 rounded-full bg-[#D4FF47] text-[#0A3323] hover:bg-[#b6e028]"><Save size={20}/></button>
+                    <button 
+                        onClick={() => setIsEditing(false)} 
+                        disabled={isSaving}
+                        className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50"
+                    >
+                        <X size={20}/>
+                    </button>
+                    <button 
+                        onClick={handleSave} 
+                        disabled={isSaving}
+                        className="p-2 rounded-full bg-[#D4FF47] text-[#0A3323] hover:bg-[#b6e028] disabled:opacity-50"
+                    >
+                        {isSaving ? <Loader2 className="animate-spin" size={20}/> : <Save size={20}/>}
+                    </button>
                 </div>
             ) : (
                 <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl font-bold text-[#0A3323] hover:bg-gray-50">

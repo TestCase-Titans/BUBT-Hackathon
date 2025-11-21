@@ -1,5 +1,3 @@
-// testcase-titans/bubt-hackathon/TestCase-Titans-BUBT-Hackathon-7f2fc8260090a6a6c6812ca1c49b4545799e53a2/innovatex-app/app/(main)/inventory/page.tsx
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -14,7 +12,8 @@ import {
   Utensils,
   AlertTriangle,
   ArrowLeft,
-  Hash
+  Hash,
+  Loader2 // Added Loader2
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
@@ -76,6 +75,9 @@ export default function InventoryPage() {
   const [foodDatabase, setFoodDatabase] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingFoods, setLoadingFoods] = useState(false);
+  
+  // Loading State for Actions
+  const [isSubmitting, setIsSubmitting] = useState(false); // <--- NEW STATE
 
   // Configuration State
   const [configuringFood, setConfiguringFood] = useState<any>(null);
@@ -159,7 +161,8 @@ export default function InventoryPage() {
   };
 
   const handleConfirmAdd = async () => {
-    if (!configuringFood) return;
+    if (!configuringFood || isSubmitting) return;
+    setIsSubmitting(true);
 
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + addItemForm.expiryDays);
@@ -204,11 +207,15 @@ export default function InventoryPage() {
     } catch (error) {
       console.error("Failed to add item", error);
       notify("Failed to add item", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleAccidentalDelete = async () => {
-    if (!selectedItem) return;
+    if (!selectedItem || isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       await fetch(`/api/inventory/${selectedItem.id}`, { method: "DELETE" });
       setInventory(safeInventory.filter((i: any) => i.id !== selectedItem.id));
@@ -217,6 +224,8 @@ export default function InventoryPage() {
     } catch (error) {
       console.error("Delete failed", error);
       notify("Failed to delete item", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -226,7 +235,8 @@ export default function InventoryPage() {
   };
 
   const handleUpdateStock = async () => {
-    if (!selectedItem) return;
+    if (!selectedItem || isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       const res = await fetch(`/api/inventory/${selectedItem.id}`, {
@@ -253,12 +263,14 @@ export default function InventoryPage() {
 
         setIsActionModalOpen(false);
         setSelectedItem(null); 
+        const actionText = actionForm.type === 'CONSUME' ? 'consumed' : 'wasted';
+        notify(`Item marked as ${actionText}`, "success");
       }
     } catch (error) {
       console.error("Update failed", error);
       notify("Failed to update stock", "error");
-      const actionText = actionForm.type === 'CONSUME' ? 'consumed' : 'wasted';
-      notify(`Item marked as ${actionText}`, "success");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -495,9 +507,11 @@ export default function InventoryPage() {
 
                         <button 
                             onClick={handleConfirmAdd}
-                            className="w-full bg-[#0A3323] text-[#D4FF47] py-4 rounded-xl font-bold text-lg hover:bg-[#0F4D34] transition-colors mt-4"
+                            disabled={isSubmitting} // Disable during submit
+                            className="w-full bg-[#0A3323] text-[#D4FF47] py-4 rounded-xl font-bold text-lg hover:bg-[#0F4D34] transition-colors mt-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Confirm & Add
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : null}
+                            {isSubmitting ? "Adding..." : "Confirm & Add"}
                         </button>
                     </div>
                 ) : (
@@ -585,11 +599,13 @@ export default function InventoryPage() {
                             <button onClick={() => setIsActionModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
                             <button 
                                 onClick={handleUpdateStock}
-                                className={`flex-1 py-3 rounded-xl font-bold text-white 
+                                disabled={isSubmitting} // Disable during submit
+                                className={`flex-1 py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 
                                     ${actionForm.type === 'CONSUME' ? 'bg-[#0A3323]' : 'bg-[#FF6B6B]'}
+                                    disabled:opacity-50 disabled:cursor-not-allowed
                                 `}
                             >
-                                Confirm
+                                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : "Confirm"}
                             </button>
                           </div>
                     </motion.div>
@@ -678,9 +694,11 @@ export default function InventoryPage() {
                     </button>
                     <button
                         onClick={handleAccidentalDelete}
-                        className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-200"
+                        disabled={isSubmitting} // Disable during submit
+                        className="flex-1 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Trash2 size={18} /> Delete
+                        {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                        {isSubmitting ? "" : "Delete"}
                     </button>
                   </div>
                 </div>

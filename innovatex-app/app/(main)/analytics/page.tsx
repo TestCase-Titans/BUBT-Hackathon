@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Activity, TrendingUp, Target } from "lucide-react";
 import ConsumptionChart from "@/components/ConsumptionChart";
+import WeeklyPieChart from "@/components/WeeklyPieChart"; // <--- Import the new chart
 import PageWrapper from "@/components/PageWrapper";
 
 export default function AnalyticsPage() {
@@ -41,32 +42,28 @@ export default function AnalyticsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8">
-          {/* Chart Component - Pass fetched data down */}
-          <ConsumptionChart preloadedData={analyticsData} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Bar Chart - Spans 2 Columns */}
+          <div className="lg:col-span-2">
+             <ConsumptionChart preloadedData={analyticsData} />
+          </div>
 
-          {/* Dynamic Logic Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* NEW: Weekly Pie Chart - Spans 1 Column */}
+          <div className="lg:col-span-1 h-[450px] lg:h-auto">
+             <WeeklyPieChart data={analyticsData?.categoryBreakdown} />
+          </div>
+
+          {/* Logic Cards */}
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Card 1: Top Category */}
             <div className="bg-[#F3F6F4] p-6 rounded-3xl border border-[#0A3323]/10">
               <h4 className="font-bold text-[#0A3323] mb-2 flex items-center gap-2">
                 <TrendingUp size={18} /> Top Category
               </h4>
               <p className="text-sm text-gray-600 leading-relaxed">
-                {loading ? (
-                  "Calculating..."
-                ) : (
+                {loading ? "Calculating..." : (
                   <>
-                    Based on your logs,{" "}
-                    <strong className="text-[#0A3323]">
-                      {metrics.topCategory.name}
-                    </strong>{" "}
-                    makes up{" "}
-                    <strong className="text-[#0A3323]">
-                      {metrics.topCategory.percentage}%
-                    </strong>{" "}
-                    of your diet. Consider checking for spoilage in this
-                    category first.
+                    Based on your logs, <strong className="text-[#0A3323]">{metrics.topCategory.name}</strong> makes up <strong className="text-[#0A3323]">{metrics.topCategory.percentage}%</strong> of your diet.
                   </>
                 )}
               </p>
@@ -77,26 +74,16 @@ export default function AnalyticsPage() {
               <h4 className="font-bold text-yellow-800 mb-2 flex items-center gap-2">
                 <Target size={18} /> Goal Tracker
               </h4>
-              <p className="text-sm text-yellow-800 leading-relaxed">
-                {loading ? (
-                  "Calculating..."
-                ) : (
+              <p className="text-sm text-yellow-800 leading-relaxed mb-3">
+                {loading ? "Calculating..." : (
                   <>
-                    You have a <strong>{metrics.goalProgress}%</strong>{" "}
-                    consumption rate (food eaten vs. wasted).
-                    {metrics.goalProgress >= 80
-                      ? " You are on track for your Zero Waste Badge!"
-                      : " Try to reduce waste to boost your score."}
+                    You have a <strong>{metrics.goalProgress}%</strong> consumption rate (food eaten vs. wasted).
                   </>
                 )}
               </p>
-              {/* Progress Bar Visual */}
               {!loading && (
-                <div className="w-full bg-yellow-200/50 rounded-full h-2 mt-3">
-                  <div
-                    className="bg-yellow-500 h-2 rounded-full transition-all duration-1000"
-                    style={{ width: `${metrics.goalProgress}%` }}
-                  />
+                <div className="w-full bg-yellow-200/50 rounded-full h-2">
+                  <div className="bg-yellow-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${metrics.goalProgress}%` }} />
                 </div>
               )}
             </div>

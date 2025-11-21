@@ -16,13 +16,14 @@ export async function POST(req: Request) {
 
   try {
     await dbConnect();
-    const { message, history } = await req.json();
+    // FIX 1: Destructure 'mode' from the request body
+    const { message, history, mode } = await req.json();
     const userId = (session.user as any).id;
 
     // 2. RETRIEVAL: Fetch Inventory (User Context) & Resources (Knowledge Base)
     const [inventoryItems, resources] = await Promise.all([
       Inventory.find({ userId, status: "ACTIVE", quantity: { $gt: 0 } }),
-      Resource.find({}) // Fetching your "small dataset" of tips
+      Resource.find({}) 
     ]);
 
     // 3. Format Context Data
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
 
     const knowledgeBase = resources.map(r => 
       `- Tip (${r.category}): ${r.title} - ${r.description || r.url}`
-    ).slice(0, 10).join("\n"); // Limit to top 10 to save tokens
+    ).slice(0, 10).join("\n"); 
 
     // 4. Construct the "NourishBot" Persona
     const systemPrompt = `
@@ -63,20 +64,24 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // Convert frontend history to Gemini format
     const chatHistory = history.map((msg: any) => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.content }],
     }));
 
+    // FIX 2: Increase token limit if mode is 'guide'
+    // 'guide' mode is sent from the resources page (approx 2000 tokens for articles)
+    // Default chat mode keeps 500 tokens for faster, shorter replies
+    const maxTokens = mode === 'guide' ? 2000 : 500;
+
     const chat = model.startChat({
       history: [
-        { role: "user", parts: [{ text: systemPrompt }] }, // Prime the bot with the system prompt first
+        { role: "user", parts: [{ text: systemPrompt }] },
         { role: "model", parts: [{ text: "Understood. I am NourishBot, ready to help with your pantry and sustainability goals." }] },
         ...chatHistory
       ],
       generationConfig: {
-        maxOutputTokens: 500,
+        maxOutputTokens: maxTokens, // <--- Updated variable here
       },
     });
 
