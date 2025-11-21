@@ -14,18 +14,18 @@ import {
   TrendingUp,
   Activity,
   MapPin,
-  Utensils,
+  Sparkles,
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
 import PageWrapper from "@/components/PageWrapper";
 import { useEffect, useState, useRef } from "react";
-import { useNotification } from "@/context/NotificationContext"; 
+import { useNotification } from "@/context/NotificationContext";
 
 export default function DashboardPage() {
   const { inventory, user } = useApp();
-  const { notify } = useNotification(); 
-  
+  const { notify } = useNotification();
+
   const safeInventory = Array.isArray(inventory) ? inventory : [];
 
   const hasWelcomed = useRef(false);
@@ -40,9 +40,10 @@ export default function DashboardPage() {
     moneyWasted: 0,
     pantryValue: 0,
     recentLogs: [] as any[],
+    weeklyInsight: "Analyzing your habits...",
   });
   const [loading, setLoading] = useState(true);
-  
+
   const [locationName, setLocationName] = useState("Locating...");
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function DashboardPage() {
         const res = await fetch("/api/dashboard");
         if (res.ok) {
           const data = await res.json();
-          setStats(data);
+          setStats((prev) => ({ ...prev, ...data }));
         }
       } catch (error) {
         console.error("Failed to load dashboard stats", error);
@@ -72,11 +73,15 @@ export default function DashboardPage() {
   }, [user, notify]);
 
   useEffect(() => {
-    const expiringItemsCount = safeInventory.filter((i: any) => i.expiryDays < 3).length;
-    
+    const expiringItemsCount = safeInventory.filter(
+      (i: any) => i.expiryDays < 3
+    ).length;
     if (expiringItemsCount > 0 && !hasWarned.current) {
       setTimeout(() => {
-        notify(`Alert: You have ${expiringItemsCount} items expiring soon!`, "warning");
+        notify(
+          `Alert: You have ${expiringItemsCount} items expiring soon!`,
+          "warning"
+        );
       }, 1500);
       hasWarned.current = true;
     }
@@ -84,45 +89,39 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const city = data.address.city || data.address.town || data.address.village || data.address.state;
-            const country = data.address.country;
-            setLocationName(`${city}, ${country}`);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              const city =
+                data.address.city ||
+                data.address.town ||
+                data.address.village ||
+                data.address.state;
+              const country = data.address.country;
+              setLocationName(`${city}, ${country}`);
+            }
+          } catch (error) {
+            console.error("Failed to fetch location name", error);
+            setLocationName("Location Unavailable");
           }
-        } catch (error) {
-          console.error("Failed to fetch location name", error);
-          setLocationName("Location Unavailable");
+        },
+        (error) => {
+          console.error("Geolocation error", error);
+          setLocationName("Location Access Denied");
         }
-      }, (error) => {
-        console.error("Geolocation error", error);
-        setLocationName("Location Access Denied");
-      });
+      );
     } else {
       setLocationName("Geolocation Not Supported");
     }
   }, []);
 
   const expiringItems = safeInventory.filter((i: any) => i.expiryDays < 3);
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case "ADD":
-        return "text-blue-600 bg-blue-50";
-      case "CONSUME":
-        return "text-[#0A3323] bg-[#D4FF47]/20";
-      case "WASTE":
-        return "text-red-600 bg-red-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
-  };
 
   return (
     <PageWrapper>
@@ -147,16 +146,16 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {/* --- MAIN IMPACT CARD --- */}
+            {/* --- MAIN IMPACT CARD (FIXED: Not fully clickable) --- */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full p-6 lg:p-10 rounded-3xl bg-[#0A3323] text-[#F3F6F4] relative overflow-hidden"
+              className="w-full p-6 lg:p-10 rounded-3xl bg-[#0A3323] text-[#F3F6F4] relative overflow-hidden group"
             >
               <div className="relative z-10 flex justify-between items-center">
                 <div>
                   <p className="text-[#D4FF47] text-xs font-bold uppercase tracking-wider mb-1">
-                    Impact Score
+                    Personal SDG Score
                   </p>
                   {loading ? (
                     <div className="h-12 w-32 bg-white/10 rounded animate-pulse mb-2" />
@@ -169,10 +168,19 @@ export default function DashboardPage() {
                         : "Growing"}
                     </h3>
                   )}
-                  <p className="text-sm text-gray-400 max-w-[200px] lg:max-w-md">
-                    Based on your consumption vs. waste ratio. Keep consuming to
-                    boost your score!
-                  </p>
+
+                  {/* --- FIX: Inline Link Here --- */}
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-400 mb-2">
+                      Score: {stats.impactScore}/100
+                    </p>
+                    <Link
+                      href="/ranklist"
+                      className="inline-flex items-center gap-2 text-[#D4FF47] font-bold hover:underline text-sm"
+                    >
+                      See my Global Rank <ArrowRight size={16} />
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-full border-4 border-[#D4FF47]/30 flex items-center justify-center relative flex-shrink-0">
@@ -200,11 +208,10 @@ export default function DashboardPage() {
               </div>
             </motion.div>
 
-            {/* --- FINANCIAL & STATS GRID (UPDATED LAYOUT) --- */}
+            {/* --- FINANCIAL & STATS GRID --- */}
             <div className="space-y-3 lg:space-y-4">
-              {/* Row 1: Active, Value, Streak */}
+              {/* Row 1 */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4">
-                {/* 1. Items Tracked */}
                 <motion.div
                   className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
                 >
@@ -221,7 +228,6 @@ export default function DashboardPage() {
                   </span>
                 </motion.div>
 
-                {/* 2. Pantry Value */}
                 <motion.div
                   className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
                 >
@@ -238,7 +244,6 @@ export default function DashboardPage() {
                   </span>
                 </motion.div>
 
-                {/* 5. Streak */}
                 <motion.div
                   className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors col-span-2 md:col-span-1`}
                 >
@@ -252,9 +257,8 @@ export default function DashboardPage() {
                 </motion.div>
               </div>
 
-              {/* Row 2: Saved, Wasted */}
+              {/* Row 2 */}
               <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                {/* 3. Saved Wastage */}
                 <motion.div
                   className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors border border-[#D4FF47]/30 bg-[#D4FF47]/5`}
                 >
@@ -271,7 +275,6 @@ export default function DashboardPage() {
                   </span>
                 </motion.div>
 
-                {/* 4. Money Wasted */}
                 <motion.div
                   className={`${THEME.glass} p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white transition-colors`}
                 >
@@ -293,68 +296,22 @@ export default function DashboardPage() {
 
           {/* --- SIDEBAR --- */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Quick Actions */}
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-              {/* Daily Insight */}
-              <div className="bg-[#E8F5E9] p-6 rounded-3xl border border-[#0A3323]/5 lg:col-span-1 col-span-2">
-                <div className="flex items-center gap-3 mb-4">
+              {/* WEEKLY INSIGHT */}
+              <div className="bg-[#E8F5E9] p-6 rounded-3xl border border-[#0A3323]/5 lg:col-span-1 col-span-2 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-[#D4FF47] opacity-10 rounded-full blur-2xl -translate-y-10 translate-x-10"></div>
+                <div className="flex items-center gap-3 mb-4 relative z-10">
                   <div className="p-2 bg-white rounded-full shadow-sm">
-                    <Wind size={20} className="text-[#0A3323]" />
+                    <Sparkles size={20} className="text-[#0A3323]" />
                   </div>
                   <h3 className="font-serif text-lg text-[#0A3323]">
-                    Daily Insight
+                    Weekly Insight
                   </h3>
                 </div>
-                <p className="text-sm text-[#0A3323]/80 leading-relaxed mb-4">
-                  "Store potatoes and onions separately. When kept together,
-                  they release gases that cause both to spoil faster."
+                <p className="text-sm text-[#0A3323]/80 leading-relaxed mb-4 relative z-10 italic">
+                  "{loading ? "Generating insights..." : stats.weeklyInsight}"
                 </p>
               </div>
-              {/* <Link href="/scan">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-white p-6 rounded-3xl shadow-sm flex flex-col justify-between h-40 group relative overflow-hidden cursor-pointer"
-                >
-                  <div className="relative z-10 w-full">
-                    <div className="w-10 h-10 rounded-full bg-[#F3F6F4] flex items-center justify-center mb-3 group-hover:bg-[#D4FF47] transition-colors">
-                      <Plus size={20} className="text-[#0A3323]" />
-                    </div>
-                    <span className="text-lg font-bold text-[#0A3323] block text-left leading-tight">
-                      Quick Log
-                    </span>
-                  </div>
-                  <ArrowRight
-                    size={20}
-                    className="relative z-10 self-end text-gray-300 group-hover:text-[#0A3323] transition-colors"
-                  />
-                </motion.div>
-              </Link> */}
-
-              <Link href="/meal-plan">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-[#FEF3C7] p-6 rounded-3xl shadow-sm flex flex-col justify-between h-40 relative overflow-hidden cursor-pointer border border-yellow-100"
-                >
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Utensils size={16} className="text-[#D97706]" />
-                      <span className="text-xs font-bold text-[#D97706] uppercase">
-                        AI Chef
-                      </span>
-                    </div>
-                    <span className="text-2xl font-bold text-[#0A3323] block text-left">
-                      Meal Plan
-                    </span>
-                    <span className="text-sm text-[#0A3323]/70 block text-left leading-tight mt-1">
-                      Zero-waste <br />
-                      weekly menu
-                    </span>
-                  </div>
-                  <div className="text-xs font-bold underline text-left mt-2 relative z-10 text-[#D97706]">
-                    Generate Now
-                  </div>
-                </motion.div>
-              </Link>
 
               <Link href="/inventory">
                 <motion.div
@@ -384,7 +341,6 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {/* Recent Activity */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
               <div className="flex items-center gap-3 mb-4">
                 <Activity size={18} className="text-[#0A3323]" />
@@ -405,13 +361,8 @@ export default function DashboardPage() {
                           {new Date(log.date).toLocaleDateString()}
                         </p>
                       </div>
-                      <span
-                        className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${getActionColor(
-                          log.action
-                        )}`}
-                      >
-                        {log.action} {log.quantity}
-                        {log.unit}
+                      <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-gray-50 text-gray-600">
+                        {log.action} {log.quantity} {log.unit}
                       </span>
                     </div>
                   ))

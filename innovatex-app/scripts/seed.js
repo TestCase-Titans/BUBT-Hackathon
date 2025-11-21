@@ -12,6 +12,8 @@ if (!MONGODB_URI) {
   );
 }
 
+// --- 1. SCHEMAS (Updated for Ranklist Support) ---
+
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -20,7 +22,8 @@ const UserSchema = new mongoose.Schema({
   dietaryPreferences: [String],
   budgetRange: String,
   location: String,
-  image: String,
+  image: String, // Needed for Avatar
+  impactScore: { type: Number, default: 0 }, // Needed for Ranking
 });
 
 const ActionLogSchema = new mongoose.Schema(
@@ -71,8 +74,9 @@ const Resource =
 const FoodItem =
   mongoose.models.FoodItem || mongoose.model("FoodItem", FoodItemSchema);
 
+// --- 2. STATIC DATA ---
+
 const resources = [
-  // --- VEGETABLE ---
   {
     title: "Keeping Green Chilies Fresh",
     category: "Vegetable",
@@ -105,8 +109,6 @@ const resources = [
       "Don't throw away peels! Boil and mash bottle gourd or pumpkin skins for a delicious Bhorta.",
     url: "#",
   },
-
-  // --- FRUIT ---
   {
     title: "Naturally Ripening Mangoes",
     category: "Fruit",
@@ -131,8 +133,6 @@ const resources = [
       "Wrap the stems in plastic wrap to slow down the ripening process.",
     url: "#",
   },
-
-  // --- GRAIN ---
   {
     title: "Protecting Rice from Weevils (Poka)",
     category: "Grain",
@@ -157,8 +157,6 @@ const resources = [
       "Keep flour in the fridge during monsoon season to prevent fungus and lumps.",
     url: "#",
   },
-
-  // --- PROTEIN (Fish/Meat) ---
   {
     title: "Storing Hilsa (Ilish) Fish",
     category: "Fish Protein",
@@ -183,8 +181,6 @@ const resources = [
       "Place the egg in water. If it sinks, it's fresh. If it floats, it's spoiled.",
     url: "#",
   },
-
-  // --- DAIRY ---
   {
     title: "Homemade Ghee from Malai",
     category: "Dairy",
@@ -201,8 +197,6 @@ const resources = [
       "Store paneer immersed in water in the fridge and change the water every 2 days.",
     url: "#",
   },
-
-  // --- SNACK ---
   {
     title: "Restoring Soggy Biscuits",
     category: "Snack",
@@ -219,8 +213,6 @@ const resources = [
       "Always use a glass jar with a tight lid. Add a sugar cube to absorb excess moisture.",
     url: "#",
   },
-
-  // --- BEVERAGE ---
   {
     title: "Storing Tea Leaves",
     category: "Beverage",
@@ -237,8 +229,6 @@ const resources = [
       "Drink immediately after opening. Freezing changes the taste significantly.",
     url: "#",
   },
-
-  // --- CANNED & CONDIMENTS ---
   {
     title: "Fungus-Free Achar (Pickles)",
     category: "Canned",
@@ -255,8 +245,6 @@ const resources = [
       "Store the bottle upside down to minimize air exposure and make dispensing easier.",
     url: "#",
   },
-
-  // --- GENERAL / WASTE REDUCTION ---
   {
     title: "Preventing Spice Clumps",
     category: "General",
@@ -276,7 +264,6 @@ const resources = [
 ];
 
 const foodItems = [
-  // --- GRAINS & STAPLES ---
   {
     name: "Miniket Rice",
     category: ["Grain"],
@@ -365,8 +352,6 @@ const foodItems = [
     unit: "pack",
     imageUrl: "🍜",
   },
-
-  // --- VEGETABLES ---
   {
     name: "Potato (Alu)",
     category: ["Vegetable"],
@@ -527,8 +512,6 @@ const foodItems = [
     unit: "bunch",
     imageUrl: "🌿",
   },
-
-  // --- FRUITS ---
   {
     name: "Banana (Sagor)",
     category: ["Fruit"],
@@ -617,8 +600,6 @@ const foodItems = [
     unit: "100pcs",
     imageUrl: "🔴",
   },
-
-  // --- MEAT PROTEIN ---
   {
     name: "Broiler Chicken",
     category: ["Meat Protein"],
@@ -659,8 +640,6 @@ const foodItems = [
     unit: "kg",
     imageUrl: "🍖",
   },
-
-  // --- FISH PROTEIN ---
   {
     name: "Rui Fish",
     category: ["Fish Protein"],
@@ -709,8 +688,6 @@ const foodItems = [
     unit: "kg",
     imageUrl: "🐟",
   },
-
-  // --- DAIRY / PROTEIN ---
   {
     name: "Farm Eggs",
     category: ["Dairy Protein", "Protein"],
@@ -775,8 +752,6 @@ const foodItems = [
     unit: "kg",
     imageUrl: "🍯",
   },
-
-  // --- VEGETABLE PROTEIN ---
   {
     name: "Lentils (Mosur Dal)",
     category: ["Vegetable Protein", "Grain"],
@@ -801,8 +776,6 @@ const foodItems = [
     unit: "kg",
     imageUrl: "🥣",
   },
-
-  // --- SPICES, FATS & OTHERS ---
   {
     name: "Soybean Oil",
     category: ["Fats", "General"],
@@ -909,24 +882,20 @@ const foodItems = [
   },
 ];
 
-// --- 4. Helper Functions for History Generation ---
+// --- 3. SEED HELPERS ---
 
 async function seedHistory(userId) {
   const logs = [];
   const today = new Date();
-
-  console.log("Generating 30 days of history for the pattern analyzer...");
+  console.log("Generating 30 days of history...");
 
   for (let i = 30; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 5 = Friday, 6 = Saturday
-
-    // Adjust for DB timestamp
+    const dayOfWeek = date.getDay();
     const createdAt = date.toISOString();
 
-    // --- Pattern 1: Daily Staples (Rice/Oil/Eggs) ---
-    // Randomly consume staples
+    // Staples (Rice)
     if (Math.random() > 0.5) {
       logs.push({
         userId,
@@ -941,37 +910,22 @@ async function seedHistory(userId) {
       });
     }
 
-    // --- Pattern 2: Vegetable Wastage on Fridays (Day 5) ---
+    // Waste on Fridays (Spinach)
     if (dayOfWeek === 5) {
       logs.push({
         userId,
         itemName: "Spinach (Palong)",
         category: ["Vegetable"],
-        cost: 30, // Full cost wasted
+        cost: 30,
         actionType: "WASTE",
         quantityChanged: 1,
         unit: "bunch",
         reason: "Wilted/Spoiled",
         createdAt,
       });
-
-      // Maybe waste some onions too occasionally
-      if (Math.random() > 0.7) {
-        logs.push({
-          userId,
-          itemName: "Onion (Deshi)",
-          category: ["Vegetable"],
-          cost: 100 * 0.2,
-          actionType: "WASTE",
-          quantityChanged: 0.2,
-          unit: "kg",
-          reason: "Rotten",
-          createdAt,
-        });
-      }
     }
 
-    // --- Pattern 3: High Fruit Consumption on Weekends (Fri/Sat in BD context) ---
+    // Fruits on Weekends
     if (dayOfWeek === 5 || dayOfWeek === 6) {
       logs.push({
         userId,
@@ -984,22 +938,10 @@ async function seedHistory(userId) {
         reason: "Weekend Snack",
         createdAt,
       });
-
-      logs.push({
-        userId,
-        itemName: "Banana (Sagor)",
-        category: ["Fruit"],
-        cost: 100 * 0.5,
-        actionType: "CONSUME",
-        quantityChanged: 0.5,
-        unit: "dozen",
-        reason: "Breakfast",
-        createdAt,
-      });
     }
 
-    // Random weekday veggies
-    if (dayOfWeek >= 0 && dayOfWeek <= 4) {
+    // Random Dinner Veggies
+    if (dayOfWeek <= 4) {
       logs.push({
         userId,
         itemName: "Potato (Alu)",
@@ -1013,38 +955,74 @@ async function seedHistory(userId) {
       });
     }
   }
-
   await ActionLog.insertMany(logs);
-  console.log(`Added ${logs.length} historical action logs.`);
+  console.log(`Added ${logs.length} historical logs.`);
 }
 
-// --- 5. Main Execution ---
+async function seedLeaderboard() {
+  console.log("Seeding Leaderboard Dummy Data...");
+  const names = [
+    "Aisha",
+    "Rahim",
+    "Karim",
+    "Fatima",
+    "Nusrat",
+    "Tanvir",
+    "Sara",
+    "Omar",
+    "Zara",
+    "Ali",
+  ];
+  const locations = ["Dhaka", "Chittagong", "Sylhet", "Khulna", "Rajshahi"];
+
+  // Generate 15 users
+  const users = [];
+  for (let i = 0; i < 15; i++) {
+    const name = names[i % names.length] + " " + String.fromCharCode(65 + i);
+    const email = `dummy${i}@example.com`;
+    const password = await bcrypt.hash("123456", 10);
+
+    users.push({
+      name,
+      email,
+      password,
+      householdSize: Math.floor(Math.random() * 5) + 1,
+      location: locations[i % locations.length],
+      impactScore: Math.floor(Math.random() * 100), // Random score
+      dietaryPreferences: [],
+      budgetRange: "Medium",
+      image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`, // Random Avatar
+    });
+  }
+
+  for (const u of users) {
+    const exists = await User.findOne({ email: u.email });
+    if (!exists) await User.create(u);
+  }
+  console.log("Leaderboard seeded.");
+}
+
+// --- 4. MAIN EXECUTION ---
 
 async function main() {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log("Connected to Database.");
 
-    // A. Reset Resources & Food Database (Static Data)
+    // Clear old static data
     await Resource.deleteMany({});
     await FoodItem.deleteMany({});
+
+    // Insert static data
     await Resource.insertMany(resources);
     await FoodItem.insertMany(foodItems);
-    console.log(
-      `Seeded ${resources.length} Resources and ${foodItems.length} Food Items.`
-    );
+    console.log("Resources and Food Items seeded.");
 
-    // B. Create Demo User
+    // Setup Demo User
     const demoEmail = "demo@ecoloop.com";
-    // Delete existing demo user to reset their stats
-    const oldUser = await User.findOne({ email: demoEmail });
-    if (oldUser) {
-      await User.deleteMany({ email: demoEmail });
-      // Clean up logs specifically for this user OR wipe all if you prefer a clean slate
-      // For safety in demo, let's wipe all action logs to ensure charts look clean
-      await ActionLog.deleteMany({});
-      console.log("Cleared old user and logs.");
-    }
+    // Wipe old data to ensure clean schema
+    await User.deleteMany({ email: demoEmail });
+    await ActionLog.deleteMany({});
 
     const hashedPassword = await bcrypt.hash("Qwerty@123", 10);
 
@@ -1056,12 +1034,14 @@ async function main() {
       dietaryPreferences: ["Halal"],
       budgetRange: "Medium",
       location: "Dhaka",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix", // Demo Avatar
+      impactScore: 75, // Initial Score
     });
 
     console.log(`Created Demo User: ${demoEmail} / Qwerty@123`);
 
-    // C. Seed History for this User
     await seedHistory(demoUser._id);
+    await seedLeaderboard();
   } catch (error) {
     console.error("Seeding Error:", error);
   } finally {

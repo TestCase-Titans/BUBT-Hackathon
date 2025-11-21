@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import { ActionLog, Inventory } from "@/lib/models";
+import { ActionLog, Inventory, User } from "@/lib/models";
 import { auth } from "@/lib/auth";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Prevent caching to ensure instant updates
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -12,16 +12,19 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "API Key missing" }, { status: 500 });
+  }
+
   await dbConnect();
   const userId = (session.user as any).id;
 
   try {
-    // Fetch logs sorted by newest first
     const logs = await ActionLog.find({ userId })
       .sort({ createdAt: -1 })
       .populate("inventoryId");
 
-    // --- NEW: Get Recent Logs for UI ---
     const recentLogs = logs.slice(0, 5).map((log) => ({
       id: log._id,
       action: log.actionType,
@@ -31,7 +34,7 @@ export async function GET() {
       unit: log.unit,
     }));
 
-    // --- 1. Calculate Streak ---
+    // --- Streak Logic ---
     const uniqueDates = Array.from(
       new Set(
         logs.map(
@@ -46,58 +49,55 @@ export async function GET() {
       .toISOString()
       .split("T")[0];
 
-    if (uniqueDates.length > 0) {
-      if (uniqueDates[0] === today || uniqueDates[0] === yesterday) {
-        streak = 1;
-        let currentDate = new Date(uniqueDates[0]);
-        for (let i = 1; i < uniqueDates.length; i++) {
-          const prevDate = new Date(uniqueDates[i]);
-          const diffTime = Math.abs(currentDate.getTime() - prevDate.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          if (diffDays === 1) {
-            streak++;
-            currentDate = prevDate;
-          } else {
-            break;
-          }
+    if (
+      uniqueDates.length > 0 &&
+      (uniqueDates[0] === today || uniqueDates[0] === yesterday)
+    ) {
+      streak = 1;
+      let currentDate = new Date(uniqueDates[0]);
+      for (let i = 1; i < uniqueDates.length; i++) {
+        const prevDate = new Date(uniqueDates[i]);
+        const diffDays = Math.ceil(
+          Math.abs(currentDate.getTime() - prevDate.getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
+        if (diffDays === 1) {
+          streak++;
+          currentDate = prevDate;
+        } else {
+          break;
         }
       }
     }
 
-    // --- 2. Calculate Financials & Waste Metrics ---
+    // --- Financials ---
     let wasteSavedUnits = 0;
     let moneySavedTotal = 0;
     let moneyWastedTotal = 0;
 
     logs.forEach((log: any) => {
-      if (
-        log.actionType === "CONSUME" &&
-        log.inventoryId &&
-        log.inventoryId.expirationDate
-      ) {
+      if (log.actionType === "CONSUME" && log.inventoryId?.expirationDate) {
         const consumedDate = new Date(log.createdAt);
         const expiryDate = new Date(log.inventoryId.expirationDate);
         const riskThreshold = new Date(expiryDate);
         riskThreshold.setDate(expiryDate.getDate() - 1);
-
         if (consumedDate >= riskThreshold) {
           wasteSavedUnits += log.quantityChanged || 0;
           moneySavedTotal += log.cost || 0;
         }
       }
-
       if (log.actionType === "WASTE") {
         moneyWastedTotal += log.cost || 0;
       }
     });
 
-    // --- 3. Pantry Value ---
     const activeInventory = await Inventory.find({ userId, status: "ACTIVE" });
-    const pantryValue = activeInventory.reduce((acc, item) => {
-      return acc + (item.costPerUnit || 0) * item.quantity;
-    }, 0);
+    const pantryValue = activeInventory.reduce(
+      (acc, item) => acc + (item.costPerUnit || 0) * item.quantity,
+      0
+    );
 
-    // --- 4. Impact Score ---
+    // --- SDG Score Calculation ---
     const consumedCount = logs.filter(
       (l: any) => l.actionType === "CONSUME"
     ).length;
@@ -109,6 +109,28 @@ export async function GET() {
     if (impactScore > 100) impactScore = 100;
     if (impactScore < 0) impactScore = 0;
 
+    // --- SAVE SCORE TO USER (For Leaderboard) ---
+    await User.findByIdAndUpdate(userId, { impactScore });
+
+    // --- AI Insight Generation ---
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const prompt = `
+      User Stats: Score ${impactScore}/100. Consumed: ${consumedCount}, Wasted: ${wastedCount}.
+      Generate a short, motivating weekly insight with a specific goal to improve this score.
+      Format: "Insight: [Observation]. Goal: [Action]."
+      Max 20 words.
+    `;
+
+    let weeklyInsight = "Track more food to get insights.";
+    try {
+      const result = await model.generateContent(prompt);
+      weeklyInsight = result.response.text().replace(/\*/g, "").trim();
+    } catch (e) {
+      console.error("AI Insight Error", e);
+    }
+
     return NextResponse.json({
       streak,
       wasteSavedUnits: wasteSavedUnits.toFixed(1),
@@ -117,7 +139,8 @@ export async function GET() {
       inventoryCount: activeInventory.length,
       moneyWasted: Math.round(moneyWastedTotal),
       pantryValue: Math.round(pantryValue),
-      recentLogs, // Return the logs here
+      recentLogs,
+      weeklyInsight, // <-- Sending this to frontend
     });
   } catch (error) {
     console.error("Dashboard Stats Error:", error);
