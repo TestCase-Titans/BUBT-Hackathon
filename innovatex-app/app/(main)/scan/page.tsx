@@ -42,6 +42,7 @@ export default function ScanPage() {
   // UI States
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // <--- NEW STATE
   
   // Data States
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
@@ -184,7 +185,8 @@ export default function ScanPage() {
 
   // Save ALL items
   const handleSaveAll = async () => {
-    if (scannedItems.length === 0) return;
+    if (scannedItems.length === 0 || isSaving) return;
+    setIsSaving(true);
 
     try {
       const savePromises = scannedItems.map(item => {
@@ -238,6 +240,7 @@ export default function ScanPage() {
     } catch (error) {
       console.error("Save Error:", error);
       notify("Failed to save items!", "error");
+      setIsSaving(false); // Only unlock on error, as success redirects
     }
   };
 
@@ -437,9 +440,11 @@ export default function ScanPage() {
                             <div className="pt-4 pb-8">
                                 <button 
                                     onClick={handleSaveAll}
-                                    className="w-full bg-[#0A3323] text-[#D4FF47] py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#0F4D34] transition-colors shadow-lg active:scale-95"
+                                    disabled={isSaving} // Disable button
+                                    className="w-full bg-[#0A3323] text-[#D4FF47] py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#0F4D34] transition-colors shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Save size={20} /> Add All to Pantry
+                                    {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                                    {isSaving ? "Saving to Pantry..." : "Add All to Pantry"}
                                 </button>
                             </div>
                         </div>
