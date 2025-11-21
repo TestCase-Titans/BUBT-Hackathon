@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Activity,
   MapPin,
+  Utensils,
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
@@ -328,6 +329,32 @@ export default function DashboardPage() {
                   />
                 </motion.div>
               </Link> */}
+
+              <Link href="/meal-plan">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-[#FEF3C7] p-6 rounded-3xl shadow-sm flex flex-col justify-between h-40 relative overflow-hidden cursor-pointer border border-yellow-100"
+                >
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Utensils size={16} className="text-[#D97706]" />
+                      <span className="text-xs font-bold text-[#D97706] uppercase">
+                        AI Chef
+                      </span>
+                    </div>
+                    <span className="text-2xl font-bold text-[#0A3323] block text-left">
+                      Meal Plan
+                    </span>
+                    <span className="text-sm text-[#0A3323]/70 block text-left leading-tight mt-1">
+                      Zero-waste <br />
+                      weekly menu
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold underline text-left mt-2 relative z-10 text-[#D97706]">
+                    Generate Now
+                  </div>
+                </motion.div>
+              </Link>
 
               <Link href="/inventory">
                 <motion.div
