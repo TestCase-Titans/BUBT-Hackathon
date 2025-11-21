@@ -10,7 +10,6 @@ const UserSchema = new Schema(
     dietaryPreferences: [String],
     budgetRange: String,
     location: String,
-    // --- FIX: Add this field so scores are saved ---
     impactScore: { type: Number, default: 0 },
   },
   { timestamps: true }

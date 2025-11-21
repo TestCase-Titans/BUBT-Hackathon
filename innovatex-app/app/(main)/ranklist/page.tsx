@@ -14,7 +14,8 @@ export default function RanklistPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/leaderboard")
+    // FIX: Add cache: 'no-store' to prevent browser caching of old 0 score
+    fetch("/api/leaderboard", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         setLeaderboard(data.leaderboard);

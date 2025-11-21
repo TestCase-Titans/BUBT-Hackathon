@@ -24,8 +24,9 @@ export async function GET() {
 
     // 2. Get Current User Rank
     // Count how many users have a higher score than the current user
-    const currentUser = await User.findById(userId, "impactScore");
-    const currentScore = currentUser?.impactScore || 0;
+    // FIX: Use .lean() to ensure we read the field even if schema is stale
+    const currentUser = await User.findById(userId, "impactScore").lean();
+    const currentScore = (currentUser as any)?.impactScore || 0;
 
     const rankCount = await User.countDocuments({
       impactScore: { $gt: currentScore },

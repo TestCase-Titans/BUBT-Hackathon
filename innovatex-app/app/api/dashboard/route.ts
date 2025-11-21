@@ -105,12 +105,16 @@ export async function GET() {
       (l: any) => l.actionType === "WASTE"
     ).length;
 
-    let impactScore = 50 + consumedCount * 2 - wastedCount * 5;
+    // FIX: Lower multiplier to avoid saturation (120 -> 100).
+    // New Math: 50 + (45*1) - (4*5) = 75. Waste one -> 70. It works.
+    let impactScore = 50 + consumedCount * 1 - wastedCount * 5;
+
     if (impactScore > 100) impactScore = 100;
     if (impactScore < 0) impactScore = 0;
 
     // --- SAVE SCORE TO USER (For Leaderboard) ---
-    await User.findByIdAndUpdate(userId, { impactScore });
+    // FIX: Added { strict: false } to ensure field is saved even if schema is stale
+    await User.findByIdAndUpdate(userId, { impactScore }, { strict: false });
 
     // --- AI Insight Generation ---
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -140,7 +144,7 @@ export async function GET() {
       moneyWasted: Math.round(moneyWastedTotal),
       pantryValue: Math.round(pantryValue),
       recentLogs,
-      weeklyInsight, // <-- Sending this to frontend
+      weeklyInsight,
     });
   } catch (error) {
     console.error("Dashboard Stats Error:", error);
