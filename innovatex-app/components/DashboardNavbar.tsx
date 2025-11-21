@@ -1,29 +1,48 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import * as NavigationMenu from '@radix-ui/react-navigation-menu';
-import { Leaf, LayoutGrid, ScanLine, BookOpen, User, LogOut } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import * as NavigationMenu from "@radix-ui/react-navigation-menu";
+import {
+  Leaf,
+  LayoutGrid,
+  ScanLine,
+  BookOpen,
+  User,
+  LogOut,
+  BarChart3,
+} from "lucide-react";
+import { useApp } from "@/context/AppContext";
 
 export const DashboardNavbar = () => {
   const pathname = usePathname();
   const { logout } = useApp();
 
   const navItems = [
-    { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', path: '/dashboard' },
-    { id: 'inventory', icon: Leaf, label: 'My Pantry', path: '/inventory' },
-    { id: 'scan', icon: ScanLine, label: 'Smart Scan', path: '/scan' },
-    { id: 'resources', icon: BookOpen, label: 'Library', path: '/resources' },
-    { id: 'profile', icon: User, label: 'Profile', path: '/profile' },
+    {
+      id: "dashboard",
+      icon: LayoutGrid,
+      label: "Dashboard",
+      path: "/dashboard",
+    },
+    {
+      id: "analytics",
+      icon: BarChart3,
+      label: "Analytics",
+      path: "/analytics",
+    },
+    { id: "inventory", icon: Leaf, label: "My Pantry", path: "/inventory" },
+    { id: "scan", icon: ScanLine, label: "Smart Scan", path: "/scan" },
+    { id: "resources", icon: BookOpen, label: "Library", path: "/resources" },
+    { id: "profile", icon: User, label: "Profile", path: "/profile" },
   ];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-6 pt-4 pb-2 pointer-events-none flex justify-center">
       <div className="pointer-events-auto w-full max-w-7xl mx-auto relative group rounded-2xl">
-        
-        <div className="absolute inset-0 rounded-2xl 
+        <div
+          className="absolute inset-0 rounded-2xl 
                         /* Background Opacity */
                         bg-gradient-to-b from-white/60 to-white/30 dark:from-[#0A3323]/60 dark:to-[#051b12]/50
                         
@@ -36,13 +55,15 @@ export const DashboardNavbar = () => {
                         border-x border-white/20 dark:border-white/5
                         shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]
                         
-                        z-0" 
+                        z-0"
         />
 
         <div className="relative z-10 flex items-center justify-between px-6 py-3 transition-all duration-300">
-          
           {/* Logo Area - Wrapped in Link for redirection */}
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
+          <Link
+            href="/"
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+          >
             <div className="w-10 h-10 bg-gradient-to-br from-[#D4FF47] to-[#A0CC00] rounded-xl flex items-center justify-center shadow-lg shadow-[#D4FF47]/20 ring-1 ring-white/50 dark:ring-black/20">
               <Leaf size={20} className="text-[#0A3323] drop-shadow-sm" />
             </div>
@@ -55,29 +76,36 @@ export const DashboardNavbar = () => {
 
           {/* Radix Navigation Menu */}
           <NavigationMenu.Root className="relative hidden lg:flex items-center justify-center">
-            <NavigationMenu.List className="flex items-center gap-1 p-1.5
+            <NavigationMenu.List
+              className="flex items-center gap-1 p-1.5
                                             bg-black/5 dark:bg-black/20 
                                             rounded-full 
                                             border border-black/5 dark:border-white/5 
-                                            shadow-inner">
+                                            shadow-inner"
+            >
               {navItems.map((item) => {
                 const isActive = pathname.startsWith(item.path);
                 return (
                   <NavigationMenu.Item key={item.id}>
                     <NavigationMenu.Link asChild active={isActive}>
-                      <Link 
+                      <Link
                         href={item.path}
                         className={`
                           group flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 outline-none select-none
-                          ${isActive 
-                            ? 'bg-[#0A3323] text-[#D4FF47] shadow-lg shadow-[#0A3323]/30 ring-1 ring-white/10 dark:bg-[#D4FF47] dark:text-[#0A3323] dark:shadow-[#D4FF47]/20' 
-                            : 'text-slate-600 dark:text-slate-300 hover:text-[#0A3323] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5'
+                          ${
+                            isActive
+                              ? "bg-[#0A3323] text-[#D4FF47] shadow-lg shadow-[#0A3323]/30 ring-1 ring-white/10 dark:bg-[#D4FF47] dark:text-[#0A3323] dark:shadow-[#D4FF47]/20"
+                              : "text-slate-600 dark:text-slate-300 hover:text-[#0A3323] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5"
                           }
                         `}
                       >
-                        <item.icon 
-                          size={18} 
-                          className={`transition-colors duration-300 ${isActive ? 'text-[#D4FF47] dark:text-[#0A3323]' : 'text-slate-400 group-hover:text-[#0A3323] dark:group-hover:text-[#D4FF47]'}`} 
+                        <item.icon
+                          size={18}
+                          className={`transition-colors duration-300 ${
+                            isActive
+                              ? "text-[#D4FF47] dark:text-[#0A3323]"
+                              : "text-slate-400 group-hover:text-[#0A3323] dark:group-hover:text-[#D4FF47]"
+                          }`}
                         />
                         <span>{item.label}</span>
                       </Link>
@@ -103,7 +131,6 @@ export const DashboardNavbar = () => {
               <span className="hidden md:inline">Sign Out</span>
             </button>
           </div>
-
         </div>
       </div>
     </header>
