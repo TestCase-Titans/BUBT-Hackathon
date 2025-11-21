@@ -7,13 +7,11 @@ import { useApp } from "@/context/AppContext";
 import { useNotification } from "@/context/NotificationContext";
 import ReactMarkdown from "react-markdown";
 
-// --- HELPER: Fix broken URLs ---
+// URL Helper
 const getValidUrl = (url: string) => {
   if (!url || typeof url !== 'string') return null;
   const clean = url.trim();
   if (clean === '' || clean === '#') return null;
-  
-  // Add https if missing
   if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
     return `https://${clean}`;
   }
@@ -44,7 +42,6 @@ export default function ResourcesPage() {
     if (resources.length > 0) {
       const userCategories = new Set<string>();
       const safeInventory = Array.isArray(inventory) ? inventory : [];
-      
       safeInventory.forEach((item: any) => {
         if (Array.isArray(item.category)) {
           item.category.forEach((cat: string) => userCategories.add(cat));
@@ -68,7 +65,6 @@ export default function ResourcesPage() {
             rest.push(res);
         }
       });
-
       setRecommended(recs);
       setOthers(rest);
     }
@@ -87,10 +83,10 @@ export default function ResourcesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          message: `Write a comprehensive, practical guide about: "${selectedResource.title}". 
-                   Focus on sustainability, food waste reduction, and practical tips. 
-                   Use Markdown formatting.`, 
-          history: [] 
+          // Explicitly asking for a guide
+          message: `Write a comprehensive guide for: "${selectedResource.title}"`, 
+          history: [],
+          mode: 'guide' // <--- THIS IS THE NEW FLAG
         }),
       });
 
@@ -126,7 +122,6 @@ export default function ResourcesPage() {
                     <Sparkles className="text-[#D4FF47] fill-[#D4FF47]" size={20} />
                     <h3 className="text-xl font-bold text-[#0A3323]">Recommended for You</h3>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="bg-[#0A3323] p-6 rounded-2xl text-[#F3F6F4] text-center flex flex-col justify-center shadow-lg transform transition-transform hover:scale-[1.02]">
                         <div className="w-12 h-12 bg-[#D4FF47] rounded-full flex items-center justify-center mx-auto mb-4 shadow-md shadow-[#D4FF47]/20">
@@ -136,7 +131,6 @@ export default function ResourcesPage() {
                         <p className="text-sm text-[#F3F6F4]/70 mb-6">Join 500+ locals reducing their footprint this week.</p>
                         <button onClick={handleJoinChallenge} className="w-full py-3 bg-[#D4FF47] text-[#0A3323] rounded-xl font-bold text-sm hover:bg-white transition-colors">Join Now</button>
                     </div>
-
                     {recommended.map((resource: any) => (
                         <ResourceCard key={resource.id} resource={resource} recommended={true} onView={setSelectedResource} />
                     ))}
