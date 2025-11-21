@@ -30,6 +30,7 @@ interface ScanFormData {
   unit: string;
   expiryDays: number;
   cost: number;
+  expirationDate: string; // NEW: Field for the actual date
 }
 
 export default function ScanPage() {
@@ -97,22 +98,37 @@ export default function ScanPage() {
            const aiResult = await aiResponse.json();
 
            if (aiResult.success && Array.isArray(aiResult.data)) {
-              const newItems = aiResult.data.map((item: any) => ({
-                name: item.name || 'Unknown Item',
-                category: item.category ? [item.category] : ['General'],
-                quantity: Number(item.quantity) || 1,
-                unit: item.unit || 'pcs',
-                expiryDays: Number(item.expiryDays) || 7,
-                cost: Number(item.cost) || 0,
-              }));
+              const newItems = aiResult.data.map((item: any) => {
+                // Logic: Use AI detected date, OR calculate based on days
+                let finalDate = item.expirationDate;
+                
+                if (!finalDate) {
+                    const days = Number(item.expiryDays) || 7;
+                    const d = new Date();
+                    d.setDate(d.getDate() + days);
+                    finalDate = d.toISOString().split('T')[0];
+                }
+
+                return {
+                    name: item.name || 'Unknown Item',
+                    category: item.category ? [item.category] : ['General'],
+                    quantity: Number(item.quantity) || 1,
+                    unit: item.unit || 'pcs',
+                    expiryDays: Number(item.expiryDays) || 7,
+                    cost: Number(item.cost) || 0,
+                    expirationDate: finalDate
+                };
+              });
               setScannedItems(newItems);
            } else {
-              // Fallback if AI returns nothing valid
-              setScannedItems([{ name: '', category: [], quantity: 1, unit: 'pcs', expiryDays: 7, cost: 0 }]);
+              // Fallback
+              const today = new Date().toISOString().split('T')[0];
+              setScannedItems([{ name: '', category: [], quantity: 1, unit: 'pcs', expiryDays: 7, cost: 0, expirationDate: today }]);
            }
         } catch (aiError) {
           console.error("AI Error", aiError);
-          setScannedItems([{ name: '', category: [], quantity: 1, unit: 'pcs', expiryDays: 7, cost: 0 }]);
+          const today = new Date().toISOString().split('T')[0];
+          setScannedItems([{ name: '', category: [], quantity: 1, unit: 'pcs', expiryDays: 7, cost: 0, expirationDate: today }]);
         }
         
         setScanned(true);
@@ -133,6 +149,7 @@ export default function ScanPage() {
   // Update item helpers
   const updateItem = (index: number, field: keyof ScanFormData, value: any) => {
     const updated = [...scannedItems];
+    // @ts-ignore
     updated[index] = { ...updated[index], [field]: value };
     setScannedItems(updated);
   };
@@ -143,7 +160,7 @@ export default function ScanPage() {
     if (currentCats.includes(cat)) {
         updated[index].category = currentCats.filter(c => c !== cat);
     } else {
-        updated[index].category = [cat]; // Keep single category for now or allow multiple
+        updated[index].category = [cat]; // Keep single category for now
     }
     setScannedItems(updated);
   };
@@ -154,7 +171,8 @@ export default function ScanPage() {
   };
 
   const addNewEmptyItem = () => {
-    setScannedItems([...scannedItems, { name: '', category: [], quantity: 1, unit: 'pcs', expiryDays: 7, cost: 0 }]);
+    const today = new Date().toISOString().split('T')[0];
+    setScannedItems([...scannedItems, { name: '', category: [], quantity: 1, unit: 'pcs', expiryDays: 7, cost: 0, expirationDate: today }]);
   };
 
   const handleResetScan = (e?: React.MouseEvent) => {
@@ -172,8 +190,8 @@ export default function ScanPage() {
       const savePromises = scannedItems.map(item => {
           if (!item.name) return null;
           
-          const expirationDate = new Date();
-          expirationDate.setDate(expirationDate.getDate() + Number(item.expiryDays));
+          // Use the explicit date from the input field
+          const expirationDate = new Date(item.expirationDate);
           
           return fetch('/api/inventory', {
             method: 'POST',
@@ -183,7 +201,7 @@ export default function ScanPage() {
               category: item.category,
               quantity: item.quantity,
               unit: item.unit,
-              expirationDate: expirationDate,
+              expirationDate: expirationDate, // Updated to use the specific date
               imageUrl: uploadedImageUrl,
               costPerUnit: item.cost,
             })
@@ -193,19 +211,26 @@ export default function ScanPage() {
       const results = await Promise.all(savePromises.filter(Boolean));
 
       if (results.length > 0) {
-         // Update Context (Simplified for demo)
-         const formattedItems = results.map((savedItem: any, i) => ({
-            id: savedItem._id,
-            name: savedItem.name,
-            category: savedItem.category,
-            quantity: savedItem.quantity,
-            unit: savedItem.unit,
-            image: savedItem.imageUrl || "📦",
-            costPerUnit: savedItem.costPerUnit,
-            expiryDays: 7, // approximation
-            expirationDate: savedItem.expirationDate,
-            status: savedItem.status
-         }));
+         const formattedItems = results.map((savedItem: any) => {
+             // Calculate days remaining for Context update
+             const now = new Date();
+             const expiry = new Date(savedItem.expirationDate);
+             const diffTime = expiry.getTime() - now.getTime();
+             const expiryDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+             
+             return {
+                id: savedItem._id,
+                name: savedItem.name,
+                category: savedItem.category,
+                quantity: savedItem.quantity,
+                unit: savedItem.unit,
+                image: savedItem.imageUrl || "📦",
+                costPerUnit: savedItem.costPerUnit,
+                expiryDays: expiryDays, 
+                expirationDate: savedItem.expirationDate,
+                status: savedItem.status
+             };
+         });
          
          setInventory((prev: any) => [...(Array.isArray(prev) ? prev : []), ...formattedItems]);
          router.push('/inventory');
@@ -273,7 +298,7 @@ export default function ScanPage() {
             </div>
         )}
 
-        {/* --- RESULTS VIEW (Adapted for Multi-Item) --- */}
+        {/* --- RESULTS VIEW --- */}
         <AnimatePresence>
             {scanned && uploadedImageUrl && (
                 <motion.div
@@ -283,7 +308,7 @@ export default function ScanPage() {
                     transition={{ duration: 0.3 }}
                     className="mt-8 flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-200px)]"
                 >
-                    {/* Left: Image Preview (Sticky) */}
+                    {/* Left: Image Preview */}
                     <div className="w-full lg:w-1/3 flex-shrink-0">
                         <div className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-gray-100 border border-gray-200 shadow-inner lg:sticky lg:top-6">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -300,7 +325,7 @@ export default function ScanPage() {
                         </div>
                     </div>
 
-                    {/* Right: Items List (Scrollable) */}
+                    {/* Right: Items List */}
                     <div className="flex-1 flex flex-col bg-white lg:bg-transparent rounded-3xl lg:rounded-none overflow-hidden">
                         <div className="flex justify-between items-center mb-4 px-1">
                             <h3 className="text-2xl font-bold text-[#0A3323] flex items-center gap-2">
@@ -363,7 +388,8 @@ export default function ScanPage() {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-3 gap-3">
+                                        {/* UPDATED GRID: Added Expiry Date Column */}
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                             <div>
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase">Qty</label>
                                                 <div className="flex gap-1 mt-1">
@@ -382,6 +408,16 @@ export default function ScanPage() {
                                                     className="w-full p-2 bg-[#F3F6F4] rounded-lg outline-none text-[#0A3323] font-bold text-sm mt-1"
                                                     value={item.unit}
                                                     onChange={(e) => updateItem(index, 'unit', e.target.value)}
+                                                />
+                                            </div>
+                                            {/* NEW: Expiry Date Input */}
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase text-red-400">Expiry</label>
+                                                <input 
+                                                    type="date" 
+                                                    className="w-full p-2 bg-[#F3F6F4] rounded-lg outline-none text-[#0A3323] font-bold text-sm mt-1"
+                                                    value={item.expirationDate}
+                                                    onChange={(e) => updateItem(index, 'expirationDate', e.target.value)}
                                                 />
                                             </div>
                                             <div>

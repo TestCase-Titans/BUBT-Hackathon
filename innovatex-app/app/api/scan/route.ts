@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     if (!imageUrl) return NextResponse.json({ success: false, error: "No Image URL" }, { status: 200 });
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-2.0-flash as confirmed working for you
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const imageResp = await fetch(imageUrl);
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
     const arrayBuffer = await imageResp.arrayBuffer();
     const base64Image = Buffer.from(arrayBuffer).toString("base64");
 
-    // UPDATED PROMPT: Ask for an ARRAY of items
+    // UPDATED PROMPT: Added 'expirationDate' field instruction
     const prompt = `Analyze this receipt or food image. Identify ALL food items listed.
     Return a JSON ARRAY of objects. Each object must have:
     - name (string)
@@ -28,6 +27,7 @@ export async function POST(req: Request) {
     - quantity (number, extract from receipt if available, else 1)
     - unit (string, default to 'pcs' or 'kg')
     - expiryDays (number, estimate based on food type)
+    - expirationDate (string, format YYYY-MM-DD. Extract from package if clearly visible. If not found, return null)
     - cost (number, extract unit price or total price. If not visible, estimate market price in BDT)
     
     Output strictly JSON array. No Markdown.`;
