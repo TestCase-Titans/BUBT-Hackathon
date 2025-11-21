@@ -12,7 +12,11 @@ export async function GET() {
       title: resource.title,
       category: resource.category,
       type: resource.type,
-      content: resource.description || resource.url,
+      // FIX: Send these fields separately!
+      description: resource.description || "",
+      url: resource.url || "",
+      // Keep content for backward compatibility, but prioritize description
+      content: resource.description || "" 
     }));
 
     return NextResponse.json(formattedResources);
