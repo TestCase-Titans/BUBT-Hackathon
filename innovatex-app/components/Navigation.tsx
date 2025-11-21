@@ -19,7 +19,6 @@ export const DesktopSidebar = () => {
   const { logout } = useApp();
 
   const navItems = [
-<<<<<<< Updated upstream
     { id: "home", icon: Home, label: "Home", path: "/" },
     {
       id: "dashboard",
@@ -29,19 +28,9 @@ export const DesktopSidebar = () => {
     },
     { id: "inventory", icon: Wheat, label: "My Pantry", path: "/inventory" },
     { id: "scan", icon: ScanLine, label: "Smart Scan", path: "/scan" },
-    { id: "chat", icon: Sparkles, label: "NourishBot", path: "/chat" }, // New Chat Feature
+    { id: "chat", icon: Sparkles, label: "NourishBot", path: "/chat" },
     { id: "resources", icon: BookOpen, label: "Library", path: "/resources" },
     { id: "profile", icon: User, label: "Profile", path: "/profile" },
-=======
-    { id: 'home', icon: Home, label: 'Home', path: '/' }, 
-    { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', path: '/dashboard' },
-    { id: 'inventory', icon: Leaf, label: 'My Pantry', path: '/inventory' },
-    { id: 'scan', icon: ScanLine, label: 'Smart Scan', path: '/scan' },
-    // Community removed from here
-    { id: 'chat', icon: Sparkles, label: 'NourishBot', path: '/chat' },
-    { id: 'resources', icon: BookOpen, label: 'Library', path: '/resources' },
-    { id: 'profile', icon: User, label: 'Profile', path: '/profile' },
->>>>>>> Stashed changes
   ];
 
   return (

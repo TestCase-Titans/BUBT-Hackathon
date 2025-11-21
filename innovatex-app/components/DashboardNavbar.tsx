@@ -11,13 +11,14 @@ import {
   BookOpen,
   User,
   LogOut,
-  BarChart3
+  BarChart3,
+  Shield, // [NEW] Icon for Admin
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
 export const DashboardNavbar = () => {
   const pathname = usePathname();
-  const { logout } = useApp();
+  const { logout, user } = useApp(); // [NEW] Get user to check admin status
 
   const navItems = [
     {
@@ -26,7 +27,6 @@ export const DashboardNavbar = () => {
       label: "Dashboard",
       path: "/dashboard",
     },
-    // Community removed from here
     {
       id: "analytics",
       icon: BarChart3,
@@ -38,6 +38,16 @@ export const DashboardNavbar = () => {
     { id: "resources", icon: BookOpen, label: "Library", path: "/resources" },
     { id: "profile", icon: User, label: "Profile", path: "/profile" },
   ];
+
+  // [NEW] Conditionally Add Admin Button
+  if (user?.isAdmin) {
+    navItems.push({
+      id: "admin",
+      icon: Shield,
+      label: "Admin",
+      path: "/admin",
+    });
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-6 pt-4 pb-2 pointer-events-none flex justify-center">
