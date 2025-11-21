@@ -1021,6 +1021,7 @@ async function main() {
     await Resource.insertMany(resources);
     await FoodItem.insertMany(foodItems);
     console.log("Resources and Food Items seeded.");
+    await SuperAdmin.deleteMany({});
 
     // Setup Demo User
     const demoEmail = "demo@ecoloop.com";
@@ -1043,6 +1044,10 @@ async function main() {
     });
 
     console.log(`Created Demo User: ${demoEmail} / Qwerty@123`);
+
+    // [NEW] Hardcode this user as Super Admin
+    await SuperAdmin.create({ userId: demoUser._id });
+    console.log("Assigned SuperAdmin privileges to Demo User.");
 
     await seedHistory(demoUser._id);
     await seedLeaderboard();
