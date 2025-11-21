@@ -9,7 +9,7 @@ import {
   BookOpen,
   User,
   Home,
-  BarChart3,
+  BarChart3
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 
@@ -19,6 +19,7 @@ export const MobileNavigation = () => {
   const navItems = [
     { id: "home", icon: Home, path: "/" },
     { id: "dashboard", icon: LayoutGrid, path: "/dashboard" },
+    // Community removed from here
     { id: "analytics", icon: BarChart3, path: "/analytics" },
     { id: "inventory", icon: Wheat, path: "/inventory" },
     { id: "scan", icon: ScanLine, path: "/scan" },
@@ -27,9 +28,9 @@ export const MobileNavigation = () => {
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md">
+    <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md">
       <div
-        className={`${THEME.glass} rounded-full p-2 flex justify-between items-center shadow-2xl`}
+        className={`${THEME.glass} rounded-full p-2 flex justify-between items-center shadow-2xl overflow-x-auto no-scrollbar`}
       >
         {navItems.map((item) => {
           const isActive =
@@ -41,7 +42,7 @@ export const MobileNavigation = () => {
             <Link
               key={item.id}
               href={item.path}
-              className="relative p-3 rounded-full transition-colors duration-300 group flex-1 flex justify-center"
+              className="relative p-3 rounded-full transition-colors duration-300 group flex-1 flex justify-center min-w-[50px]"
             >
               {isActive && (
                 <motion.div
@@ -51,7 +52,7 @@ export const MobileNavigation = () => {
                 />
               )}
               <item.icon
-                size={24}
+                size={22}
                 className={`relative z-10 transition-colors duration-200 ${
                   isActive ? "text-[#D4FF47]" : "text-[#0A3323]/60"
                 }`}

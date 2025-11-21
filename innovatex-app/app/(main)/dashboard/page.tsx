@@ -15,6 +15,8 @@ import {
   Activity,
   MapPin,
   Sparkles,
+  Heart,
+  Users // Added Icons
 } from "lucide-react";
 import { THEME } from "@/lib/theme";
 import { useApp } from "@/context/AppContext";
@@ -146,7 +148,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {/* --- MAIN IMPACT CARD (FIXED: Not fully clickable) --- */}
+            {/* --- MAIN IMPACT CARD --- */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -169,7 +171,6 @@ export default function DashboardPage() {
                     </h3>
                   )}
 
-                  {/* --- FIX: Inline Link Here --- */}
                   <div className="mt-4">
                     <p className="text-sm text-gray-400 mb-2">
                       Score: {stats.impactScore}/100
@@ -297,7 +298,42 @@ export default function DashboardPage() {
           {/* --- SIDEBAR --- */}
           <div className="lg:col-span-1 space-y-6">
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-              {/* WEEKLY INSIGHT */}
+              
+              {/* --- NEW: Community Hub Card --- */}
+              <Link href="/community" className="col-span-2">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between h-40 relative overflow-hidden cursor-pointer group"
+                >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4FF47] rounded-full blur-3xl opacity-20 -translate-y-10 translate-x-10 group-hover:opacity-30 transition-opacity" />
+                    
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Heart size={18} className="text-[#0A3323]" />
+                            <span className="text-xs font-bold text-[#0A3323] uppercase tracking-wider">
+                                Community Hub
+                            </span>
+                        </div>
+                        <h3 className="text-xl font-serif font-bold text-[#0A3323] leading-tight">
+                            Share Surplus,<br/>
+                            <span className="text-gray-400">Reduce Waste.</span>
+                        </h3>
+                    </div>
+
+                    <div className="relative z-10 flex items-center justify-between mt-2">
+                        <div className="flex -space-x-2">
+                            {[1,2,3].map(i => (
+                                <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-xs">
+                                    <Users size={12} className="text-gray-400"/>
+                                </div>
+                            ))}
+                        </div>
+                        <span className="text-xs font-bold underline text-[#0A3323]">View Listings</span>
+                    </div>
+                </motion.div>
+              </Link>
+              
+              {/* WEEKLY INSIGHT (Moved below Community) */}
               <div className="bg-[#E8F5E9] p-6 rounded-3xl border border-[#0A3323]/5 lg:col-span-1 col-span-2 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#D4FF47] opacity-10 rounded-full blur-2xl -translate-y-10 translate-x-10"></div>
                 <div className="flex items-center gap-3 mb-4 relative z-10">
@@ -313,7 +349,8 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <Link href="/inventory">
+              {/* ACTION NEEDED */}
+              <Link href="/inventory" className="col-span-2 lg:col-span-1">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="bg-[#FFEDED] p-6 rounded-3xl shadow-sm flex flex-col justify-between h-40 relative overflow-hidden cursor-pointer"
@@ -340,7 +377,8 @@ export default function DashboardPage() {
                 </motion.div>
               </Link>
             </div>
-
+            
+            {/* Recent Activity */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
               <div className="flex items-center gap-3 mb-4">
                 <Activity size={18} className="text-[#0A3323]" />

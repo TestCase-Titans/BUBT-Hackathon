@@ -11,7 +11,7 @@ import {
   BookOpen,
   User,
   LogOut,
-  BarChart3,
+  BarChart3
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
@@ -26,6 +26,7 @@ export const DashboardNavbar = () => {
       label: "Dashboard",
       path: "/dashboard",
     },
+    // Community removed from here
     {
       id: "analytics",
       icon: BarChart3,
