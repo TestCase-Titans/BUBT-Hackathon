@@ -32,6 +32,7 @@ This project relies on the following external services:
 | Google Gemini API  | Powered by gemini-2.0-flash model. Used for "Smart Scan" to identify food items from images. | [Get API Key](https://aistudio.google.com/) |
 | Cloudinary         | Cloud-based image management for profile and food item images.                               | [Sign Up](https://cloudinary.com/) |
 | MongoDB Atlas      | Cloud database hosting for persistent inventory and user data.                               | [Create Cluster](https://www.mongodb.com/atlas/database) |
+| Dice Bar           | Random avatar generator                                                                      |                                                          |
 
 ---
 
